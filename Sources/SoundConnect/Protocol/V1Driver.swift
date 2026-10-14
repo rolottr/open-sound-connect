@@ -206,9 +206,9 @@ final class V1Driver: HeadphoneDriver {
 
     private func refreshPlayback() async throws {
         _ = try await ask([0xA2, 0x01], expect: .init(.dataMdr, 0xA3, 0x01))
-        _ = try await ask([0xA6, 0x01, 0x20], expect: .init(.dataMdr, 0xA7, 0x01))
+        _ = try await ask([0xA6, 0x01, 0x20], expect: .init(.dataMdr, 0xA7, 0x01, detail: 0x20))
         for detail: UInt8 in [0x00, 0x01, 0x02] {
-            _ = try await ask([0xA6, 0x01, detail], expect: .init(.dataMdr, 0xA7, 0x01))
+            _ = try await ask([0xA6, 0x01, detail], expect: .init(.dataMdr, 0xA7, 0x01, detail: detail))
         }
     }
 
@@ -306,7 +306,7 @@ final class V1Driver: HeadphoneDriver {
         case .volume(let value):
             guard supports(Function.playback) else { throw DriverError.unsupported("Volume") }
             try await link.send([0xA8, 0x01, 0x20, UInt8(clamping: max(0, min(30, value)))])
-            try await readBack([0xA6, 0x01, 0x20], expect: .init(.dataMdr, 0xA7, 0x01))
+            try await readVolumeBack(value, payload: [0xA6, 0x01, 0x20], expect: .init(.dataMdr, 0xA7, 0x01, detail: 0x20))
 
         case .listeningMode, .voiceGuidanceVolume, .ncAmbButton, .headGesture:
             throw DriverError.unsupported(change.label)
@@ -718,7 +718,7 @@ final class V1Driver: HeadphoneDriver {
             self.nameRefreshScheduled = false
             try? await self.link.exclusive {
                 for detail: UInt8 in [0x00, 0x01, 0x02] {
-                    _ = try await self.ask([0xA6, 0x01, detail], expect: .init(.dataMdr, 0xA7, 0x01))
+                    _ = try await self.ask([0xA6, 0x01, detail], expect: .init(.dataMdr, 0xA7, 0x01, detail: detail))
                 }
             }
         }

@@ -319,6 +319,7 @@ final class ProbeRunner {
             switch record.outcome {
             case .confirmed: return "confirmed by read-back"
             case .mismatch: return "MISMATCH after read-back"
+            case .adjusted(let detail): return "ADJUSTED: \(detail)"
             case .notCheckable: return "sent"
             case .failed(let error): return "ERROR \(error)"
             }

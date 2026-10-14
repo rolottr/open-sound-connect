@@ -28,6 +28,8 @@ echo "==> swift build ($CONFIG) with SDK ${SDKROOT:-default}"
 swift build -c "$CONFIG" --product SoundConnect
 swift build -c "$CONFIG" --product SoundConnectArtwork
 BIN=$(swift build -c "$CONFIG" --show-bin-path)
+echo "==> Local Now Playing helper"
+"$ROOT/scripts/build-mediaremote.sh"
 
 echo "==> Assembling bundle"
 rm -rf "$APP"
@@ -40,6 +42,10 @@ cp "$ROOT/Resources/Artwork/ATTRIBUTION.md" "$APP/Contents/Resources/ArtworkAttr
 cp "$ROOT/Resources/Models/WH-1000XM4.usdz" "$APP/Contents/Resources/"
 cp "$ROOT/Resources/Models/WH-1000XM4.png" "$APP/Contents/Resources/"
 cp "$ROOT/LICENSE" "$APP/Contents/Resources/LICENSE"
+mkdir -p "$APP/Contents/Frameworks"
+ditto "$ROOT/build/MediaRemoteAdapter.framework" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
+cp "$ROOT/Vendor/MediaRemoteAdapter/bin/mediaremote-adapter.pl" "$APP/Contents/Resources/"
+cp "$ROOT/Vendor/MediaRemoteAdapter/LICENSE" "$APP/Contents/Resources/MediaRemoteAdapter-LICENSE"
 
 echo "==> App icon"
 "$BIN/SoundConnectArtwork" icon "$ROOT/Resources/Artwork/AppIconSource.png" "$ROOT/build/AppIcon.iconset"

@@ -2,6 +2,10 @@
 
 ![Sound Connect walkthrough showing the interactive headphone model, sound controls, scenes, settings and activity](.github/assets/showcase.webp)
 
+<p align="center">
+  <img src=".github/assets/menubar.webp" width="640" alt="Animated walkthrough of the Sound Connect menu bar icon and dropdown, with battery, noise control, equalizer, DSEE, Speak-to-Chat and scenes">
+</p>
+
 **Your Sony headphones, at home on your Mac.**
 
 Open Sound Connect is a native macOS app for controlling Sony headphones over Bluetooth. Tune noise canceling and EQ, save settings for different parts of your day, and reach your everyday controls from the menu bar.
@@ -31,6 +35,7 @@ The app communicates directly with the headphones using their Bluetooth control 
 | **Scenes** | Combine supported settings into named presets, then apply them manually or through connection, schedule and app-activation triggers. |
 | **Menu bar** | Check battery and codec, switch noise modes, choose EQ, toggle DSEE and Speak-to-Chat, and apply scenes. |
 | **Activity** | Inspect reported capabilities, setting-change results and protocol traffic; copy or export diagnostics. |
+| **Now Playing** | Show the Mac's current title, artist, album and artwork, with playback controls for that player. Headphone metadata is used when macOS metadata is unavailable. |
 | **Mac integration** | Keyboard shortcuts, automatic reconnection, an optional menu bar item and an Open at Login setting. |
 
 Feature availability depends on the headphone model and firmware. Implemented controls and hardware-verified controls are distinguished in [Compatibility](#compatibility).
@@ -93,7 +98,9 @@ cd open-sound-connect
 open "build/Sound Connect.app"
 ```
 
-The build script compiles the app and icon generator, assembles the app bundle, includes the license, and applies an ad-hoc signature. No third-party Swift package dependencies are needed.
+The build script compiles the app, icon generator and vendored MediaRemote Adapter, assembles the app bundle, includes the licenses, and applies an ad-hoc signature. No third-party Swift package dependencies, extra package manager or build-time downloads are needed.
+
+Run the playback and volume regression checks with `./scripts/test.sh`.
 
 To install into `~/Applications` and launch:
 
@@ -169,6 +176,8 @@ The **Headphones** and **Scenes** menus expose additional actions and their shor
 
 The app communicates directly with the headset over local Bluetooth. It has no account system, analytics or cloud backend.
 
+Now Playing reads media metadata and artwork locally from macOS using the bundled [MediaRemote Adapter](Vendor/MediaRemoteAdapter/UPSTREAM.md). It does not fetch cover images from the internet or store listening history. This integration uses a private macOS interface; if unavailable, the app falls back to the metadata supplied by the headphones. Replay mode never starts the macOS media helper.
+
 - **Scenes:** `~/Library/Application Support/Sound Connect/scenes.json`.
 - **Preferences and saved EQ curves:** local macOS user defaults.
 - **Diagnostic reports:** written locally when you request or export them.
@@ -188,6 +197,8 @@ Enable Sound Connect under **System Settings → Privacy & Security → Bluetoot
 ### A control is missing or a change fails
 
 Available controls depend on the model's reported capabilities. Check **Activity** for reported features and the setting's read-back result. Include that information when reporting a problem, along with the model and firmware version.
+
+Volume can be rounded by one step during Bluetooth synchronization. The slider follows the reported value, and Activity distinguishes this adjustment from an exact match. Larger mismatches and unconfirmed changes still report failure; mute must match exactly.
 
 ### Collect a read-only hardware report
 
@@ -210,6 +221,8 @@ Replay runs the recorded frames through the app's parser and displays a persiste
 ## Credits and license
 
 Created by [rolottr](https://github.com/rolottr). Released under the [MIT License](LICENSE).
+
+The bundled [MediaRemote Adapter](https://github.com/ungive/mediaremote-adapter) is by Jonas van den Berg and contributors, under its [BSD-3-Clause license](Vendor/MediaRemoteAdapter/LICENSE). Its pinned source is in `Vendor/MediaRemoteAdapter`, and its license is included in the app bundle.
 
 Protocol research benefited from [SonyHeadphonesClient](https://github.com/mos9527/SonyHeadphonesClient), [Plutoberth’s SonyHeadphonesClient](https://github.com/Plutoberth/SonyHeadphonesClient) and [SonyBridge](https://github.com/AmitRajput-Dev/SonyBridge). See [artwork attribution](Resources/Artwork/ATTRIBUTION.md) for the bundled icon. The WH-1000XM4 model and thumbnail are original Blender artwork; other models use a generic SwiftUI illustration. The editable scene and generator are in [`artwork/`](artwork/). Sony product names and marks identify the depicted device and belong to their respective owners.
 

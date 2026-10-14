@@ -12,6 +12,7 @@ struct LevelSlider: View {
     var onCommit: (Int) -> Void
 
     @State private var dragValue: Int?
+    @State private var isDragging = false
     @FocusState private var focused: Bool
 
     private var shown: Int { dragValue ?? value }
@@ -51,6 +52,7 @@ struct LevelSlider: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         guard enabled else { return }
+                        isDragging = true
                         let raw = gesture.location.x / max(1, width) * span + CGFloat(range.lowerBound)
                         let stepped = min(range.upperBound, max(range.lowerBound, Int(raw.rounded())))
                         if stepped != dragValue {
@@ -60,8 +62,9 @@ struct LevelSlider: View {
                     }
                     .onEnded { _ in
                         guard enabled, let final = dragValue else { return }
+                        isDragging = false
                         onCommit(final)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { dragValue = nil }
+                        settleAfterCommit()
                     }
             )
         }
@@ -83,7 +86,7 @@ struct LevelSlider: View {
             }
         }
         .onChange(of: value) { _, newValue in
-            if dragValue == newValue { dragValue = nil }
+            if !isDragging || dragValue == newValue { dragValue = nil }
         }
     }
 
@@ -93,7 +96,15 @@ struct LevelSlider: View {
         guard next != shown else { return .handled }
         dragValue = next
         onCommit(next)
+        settleAfterCommit()
         return .handled
+    }
+
+    private func settleAfterCommit() {
+        let committed = dragValue
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if !isDragging, dragValue == committed { dragValue = nil }
+        }
     }
 }
 

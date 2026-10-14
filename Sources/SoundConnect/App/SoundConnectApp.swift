@@ -54,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Developer replay of a recorded `--probe` report: no Bluetooth, no automations, read-only.
             controller.startReplay(from: URL(fileURLWithPath: arguments[index + 1]))
         } else {
+            controller.systemNowPlaying.start()
             controller.start()
             scenes.startAutomation()
         }
@@ -87,6 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        controller.systemNowPlaying.stop()
         controller.disconnect()
     }
 }

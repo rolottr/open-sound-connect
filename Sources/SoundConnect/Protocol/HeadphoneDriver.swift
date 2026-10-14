@@ -46,6 +46,16 @@ enum DeviceChange: Equatable, Sendable {
         }
     }
 
+    /// XM4 volume can round to an adjacent step (observed: request 17, read back 16).
+    /// Record the actual value as an adjustment, never claim an exact match or relax mute verification.
+    @MainActor
+    func adjustment(in state: DeviceState) -> String? {
+        guard case .volume(let requested) = self, (1..<30).contains(requested),
+              let actual = state.nowPlaying.volume, (0...30).contains(actual),
+              abs(actual - requested) == 1 else { return nil }
+        return "Requested volume \(requested); headphones reported \(actual)."
+    }
+
     /// Whether the read-back state matches the request. `nil` = not checkable (momentary commands).
     @MainActor
     func isReflected(in state: DeviceState) -> Bool? {
@@ -118,6 +128,17 @@ protocol HeadphoneDriver: AnyObject {
 }
 
 extension HeadphoneDriver {
+    /// Bluetooth volume synchronization may finish after the write ACK. Re-read, without sending the
+    /// volume again, before deciding whether it matched, rounded, or failed.
+    func readVolumeBack(_ requested: Int, payload: [UInt8], expect: MDRLink.Matcher) async throws {
+        try await readBack(payload, expect: expect)
+        for delay in [150, 350] where state.nowPlaying.volume != requested {
+            try await Task.sleep(for: .milliseconds(delay))
+            try await readBack(payload, expect: expect)
+        }
+        link.note("Volume requested \(requested), reported \(state.nowPlaying.volume.map(String.init) ?? "unavailable")")
+    }
+
     /// Mandatory read-back after a write. A missing reply throws, so a write is never reported as confirmed on
     /// the strength of an older, already-equal value. Must run inside the same `link.exclusive` transaction as
     /// the write so no other operation can consume the reply.

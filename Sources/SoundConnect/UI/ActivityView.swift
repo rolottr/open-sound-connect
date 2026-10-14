@@ -54,6 +54,7 @@ struct VerificationCard: View {
     private func icon(_ outcome: VerificationRecord.Outcome) -> some View {
         switch outcome {
         case .confirmed: Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.good)
+        case .adjusted: Image(systemName: "equal.circle").foregroundStyle(Theme.secondary)
         case .mismatch: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning)
         case .notCheckable: Image(systemName: "arrow.up.circle").foregroundStyle(Theme.secondary)
         case .failed: Image(systemName: "xmark.octagon.fill").foregroundStyle(Theme.danger)
@@ -63,6 +64,7 @@ struct VerificationCard: View {
     private func detail(_ outcome: VerificationRecord.Outcome) -> String {
         switch outcome {
         case .confirmed: "Applied"
+        case .adjusted(let detail): detail
         case .mismatch: "Not applied: the headphones kept another value"
         case .notCheckable: "Sent"
         case .failed(let error): "Failed: \(error)"

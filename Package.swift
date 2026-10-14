@@ -11,6 +11,8 @@ let package = Package(
         .executable(name: "SoundConnectArtwork", targets: ["SoundConnectArtwork"]),
     ],
     targets: [
+        .testTarget(name: "SoundConnectTests", dependencies: ["SoundConnect"],
+                    swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(
             name: "SoundConnect",
             path: "Sources/SoundConnect",

@@ -206,20 +206,16 @@ struct CompactModeButton: View {
     }
 }
 
-/// Menu bar icon reflecting the current mode.
+/// A full-size headphone glyph; the circled variants make the headphones too small in the menu bar.
 struct MenuBarIcon: View {
     @Environment(HeadphoneController.self) private var controller
 
     var body: some View {
-        if controller.isConnected {
-            switch controller.state.noise?.mode {
-            case .ambient?: Image(systemName: "headphones.circle")
-            case .off?: Image(systemName: "headphones")
-            default: Image(systemName: "headphones.circle.fill")
-            }
-        } else {
-            Image(systemName: "headphones").opacity(0.6)
-        }
+        Image(systemName: "headphones")
+            .font(.system(size: 18, weight: .medium))
+            .imageScale(.large)
+            .opacity(controller.isConnected ? 1 : 0.6)
+            .accessibilityLabel(controller.isConnected ? "Sound Connect, \(controller.state.noise?.mode.title ?? "connected")" : "Sound Connect, not connected")
     }
 }
 

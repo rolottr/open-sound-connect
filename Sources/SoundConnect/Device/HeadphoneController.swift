@@ -38,7 +38,7 @@ enum ConnectionPhase: Equatable {
 
 /// Outcome of one write + read-back, kept for the Diagnostics "verification" list and scene reports.
 struct VerificationRecord: Identifiable, Sendable {
-    enum Outcome: Sendable { case confirmed, mismatch, notCheckable, failed(String) }
+    enum Outcome: Sendable { case confirmed, adjusted(String), mismatch, notCheckable, failed(String) }
     let id = UUID()
     let date: Date
     let label: String
@@ -57,6 +57,7 @@ struct Toast: Identifiable, Equatable {
 final class HeadphoneController {
     let bluetooth = BluetoothAccess()
     let state = DeviceState()
+    let systemNowPlaying = SystemNowPlaying()
 
     private(set) var phase: ConnectionPhase = .starting
     private(set) var knownHeadphones: [KnownHeadphones] = []
@@ -468,15 +469,19 @@ final class HeadphoneController {
         pendingLabels.insert(label)
         defer { pendingLabels.remove(label) }
         do {
-            let reflected: Bool? = try await link.exclusive {
+            let result: (reflected: Bool?, adjustment: String?) = try await link.exclusive {
                 try await driver.apply(change)
-                return change.isReflected(in: state)
+                return (change.isReflected(in: state), change.adjustment(in: state))
             }
-            switch reflected {
+            switch result.reflected {
             case true?:
                 record(label, .confirmed)
                 return true
             case false?:
+                if let adjustment = result.adjustment {
+                    record(label, .adjusted(adjustment))
+                    return true
+                }
                 if let declined = alertDeclinedAt, Date().timeIntervalSince(declined) < 60 {
                     alertDeclinedAt = nil
                     record(label, .failed("Cancelled on the headphones' prompt"))
@@ -528,6 +533,10 @@ final class HeadphoneController {
                     try await driver.apply(change)
                     switch change.isReflected(in: state) {
                     case false?:
+                        if let adjustment = change.adjustment(in: state) {
+                            record(change.label, .adjusted(adjustment))
+                            break
+                        }
                         record(change.label, .mismatch)
                         return change.label
                     case true?:

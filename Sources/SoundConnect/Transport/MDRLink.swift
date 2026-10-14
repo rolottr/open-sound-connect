@@ -42,16 +42,19 @@ final class MDRLink: RFCOMMTransportDelegate {
         let table: MDRDataType
         let command: UInt8
         let selector: UInt8?
+        let detail: UInt8?
 
-        init(_ table: MDRDataType = .dataMdr, _ command: UInt8, _ selector: UInt8? = nil) {
+        init(_ table: MDRDataType = .dataMdr, _ command: UInt8, _ selector: UInt8? = nil, detail: UInt8? = nil) {
             self.table = table
             self.command = command
             self.selector = selector
+            self.detail = detail
         }
 
         func matches(_ frame: MDRFrame) -> Bool {
             guard frame.rawType == table.rawValue, let first = frame.payload.first, first == command else { return false }
-            if let selector { return frame.payload.count > 1 && frame.payload[1] == selector }
+            if let selector, !(frame.payload.count > 1 && frame.payload[1] == selector) { return false }
+            if let detail, !(frame.payload.count > 2 && frame.payload[2] == detail) { return false }
             return true
         }
     }

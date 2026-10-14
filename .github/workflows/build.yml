@@ -27,6 +27,8 @@ jobs:
           persist-credentials: false
       - name: Build and package
         run: ./scripts/package.sh
+      - name: Test playback and volume verification
+        run: ./scripts/test.sh
       - name: Verify checksum
         working-directory: build
         run: shasum -a 256 -c Sound-Connect-macos-${{ matrix.arch }}.zip.sha256

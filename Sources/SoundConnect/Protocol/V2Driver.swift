@@ -363,7 +363,7 @@ final class V2Driver: HeadphoneDriver {
         case .volume(let value):
             guard t1Any(T1.playback) else { throw DriverError.unsupported("Volume") }
             try await link.send([0xA8, 0x20, UInt8(clamping: max(0, min(30, value)))])
-            try await readBack([0xA6, 0x20], expect: .init(.dataMdr, 0xA7, 0x20))
+            try await readVolumeBack(value, payload: [0xA6, 0x20], expect: .init(.dataMdr, 0xA7, 0x20))
         }
     }
 
