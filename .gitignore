@@ -1,0 +1,28 @@
+# Build products and local IDE state.
+/.build/
+/build/
+/.swiftpm/
+.DS_Store
+xcuserdata/
+*.xcuserstate
+
+# Private research, diagnostic captures and development session files.
+/.work/
+/research/
+*.apk
+*.apkm
+*.apks
+*.aab
+*.dex
+*.log
+
+# Local credentials and signing material.
+.env
+.env.*
+*.p12
+*.p8
+*.key
+
+# Blender autosave backups.
+*.blend1
+*.blend2

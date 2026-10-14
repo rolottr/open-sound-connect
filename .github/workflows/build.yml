@@ -1,0 +1,39 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: macOS (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build and package
+        run: ./scripts/package.sh
+      - name: Verify checksum
+        working-directory: build
+        run: shasum -a 256 -c Sound-Connect-macos-${{ matrix.arch }}.zip.sha256
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Sound-Connect-macos-${{ matrix.arch }}
+          path: |
+            build/Sound-Connect-macos-${{ matrix.arch }}.zip
+            build/Sound-Connect-macos-${{ matrix.arch }}.zip.sha256
+          if-no-files-found: error
