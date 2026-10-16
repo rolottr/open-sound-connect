@@ -61,7 +61,7 @@ The app bundle is named **Sound Connect.app**. Closing the main window keeps the
 
 After your headphones first connect, Sound Connect offers once to open at login; the same switch is under **Settings → Sound Connect**. When opened at login it starts quietly in the menu bar. Launching with `--background` does the same for testing.
 
-Sound Connect checks this repository's GitHub Releases once a day. When a newer version is out it offers to download the archive for your Mac's architecture; replace the app in your Applications folder with the new one. You can also choose **Sound Connect → Check for Updates…**.
+Sound Connect checks this repository's GitHub Releases once a day. When a newer version is out, **Download** opens that release's page on GitHub; pick the archive for your Mac (`arm64` for Apple Silicon, `x86_64` for Intel) and replace the app in your Applications folder with the new one. You can also choose **Sound Connect → Check for Updates…**.
 
 ### About downloaded builds
 

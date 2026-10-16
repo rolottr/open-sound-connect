@@ -3,14 +3,14 @@ import Foundation
 import Observation
 
 /// Looks for a newer published release on GitHub. It only reads the public "latest release" endpoint (no account,
-/// no identifiers) and never installs anything itself: it points to the release page and this Mac's download.
+/// no identifiers) and never installs anything itself: downloads happen on the release's GitHub page.
 @MainActor
 @Observable
 final class UpdateChecker {
     struct Release: Equatable {
         let version: String
-        let notesURL: URL
-        let downloadURL: URL?
+        /// The release's GitHub page, which lists the archives for each architecture.
+        let pageURL: URL
     }
 
     enum State: Equatable {
@@ -18,14 +18,6 @@ final class UpdateChecker {
     }
 
     static let repository = "rolottr/open-sound-connect"
-    /// Matches the archives `scripts/package.sh` attaches to each release.
-    nonisolated static let assetName: String = {
-        #if arch(arm64)
-        "Sound-Connect-macos-arm64.zip"
-        #else
-        "Sound-Connect-macos-x86_64.zip"
-        #endif
-    }()
     private static let interval: TimeInterval = 24 * 60 * 60
 
     private enum Key {
@@ -105,15 +97,10 @@ final class UpdateChecker {
         switch state {
         case .available(let release):
             alert.messageText = "Sound Connect \(release.version) is available"
-            alert.informativeText = "You have \(currentVersion). Download the new version, then replace the app in your Applications folder."
+            alert.informativeText = "You have \(currentVersion). Download the new version from its GitHub release page, then replace the app in your Applications folder."
             alert.addButton(withTitle: "Download")
-            alert.addButton(withTitle: "Release Notes")
             alert.addButton(withTitle: "Later")
-            switch alert.runModal() {
-            case .alertFirstButtonReturn: download(release)
-            case .alertSecondButtonReturn: NSWorkspace.shared.open(release.notesURL)
-            default: break
-            }
+            if alert.runModal() == .alertFirstButtonReturn { download(release) }
         case .upToDate:
             alert.messageText = "You’re up to date"
             alert.informativeText = "Sound Connect \(currentVersion) is the latest version."
@@ -127,8 +114,9 @@ final class UpdateChecker {
         }
     }
 
+    /// Opens the release page on GitHub, where the person picks the archive for their Mac.
     func download(_ release: Release) {
-        NSWorkspace.shared.open(release.downloadURL ?? release.notesURL)
+        NSWorkspace.shared.open(release.pageURL)
     }
 
     func dismissOffer() { offerDismissed = true }
@@ -141,25 +129,19 @@ final class UpdateChecker {
     // MARK: - Parsing
 
     private struct GitHubRelease: Decodable {
-        struct Asset: Decodable {
-            let name: String
-            let browserDownloadUrl: URL
-        }
         let tagName: String
         let htmlUrl: URL
         let draft: Bool
         let prerelease: Bool
-        let assets: [Asset]
     }
 
-    static func release(from data: Data, assetName: String = UpdateChecker.assetName) throws -> Release {
+    static func release(from data: Data) throws -> Release {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let release = try decoder.decode(GitHubRelease.self, from: data)
         guard !release.draft, !release.prerelease else { throw URLError(.cannotParseResponse) }
         let version = release.tagName.hasPrefix("v") ? String(release.tagName.dropFirst()) : release.tagName
-        return Release(version: version, notesURL: release.htmlUrl,
-                       downloadURL: release.assets.first { $0.name == assetName }?.browserDownloadUrl)
+        return Release(version: version, pageURL: release.htmlUrl)
     }
 
     /// Numeric, component-wise: 1.10.0 > 1.9.2, and 1.2 == 1.2.0.

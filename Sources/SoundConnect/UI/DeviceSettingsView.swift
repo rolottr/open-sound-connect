@@ -428,7 +428,6 @@ struct UpdatesCard: View {
                 SettingRow(symbol: statusSymbol, title: statusTitle, detail: statusDetail) {
                     HStack(spacing: 10) {
                         if let release = updates.available {
-                            Button("Release Notes") { NSWorkspace.shared.open(release.notesURL) }
                             Button("Download") { updates.download(release) }
                                 .buttonStyle(.borderedProminent).tint(Theme.accent).foregroundStyle(Theme.onAccent)
                         } else if updates.state == .checking {
@@ -463,7 +462,7 @@ struct UpdatesCard: View {
 
     private var statusDetail: String? {
         if case .failed(let message) = updates.state { return message }
-        if updates.available != nil { return "Download it, then replace the app in your Applications folder." }
+        if updates.available != nil { return "Download opens the release page on GitHub. Replace the app in your Applications folder with the new one." }
         return updates.lastChecked.map { "Last checked \($0.formatted(.relative(presentation: .named)))." }
     }
 }

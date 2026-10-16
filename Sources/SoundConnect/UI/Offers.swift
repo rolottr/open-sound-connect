@@ -117,7 +117,7 @@ struct UpdateOffer: View {
         ZStack {
             if let release {
                 FloatingOffer(symbol: "arrow.down.circle", title: "Sound Connect \(release.version) is available",
-                              message: "You have \(updates.currentVersion). Download it, then replace the app in your Applications folder.") {
+                              message: "You have \(updates.currentVersion). Download it from the GitHub release page, then replace the app in your Applications folder.") {
                     Button("Skip This Version") { updates.skip(release) }
                     Button("Later") { updates.dismissOffer() }
                     Button("Download") {
@@ -125,9 +125,6 @@ struct UpdateOffer: View {
                         updates.dismissOffer()
                     }
                     .modifier(PrimaryOfferButton())
-                }
-                .contextMenu {
-                    Button("Release Notes") { NSWorkspace.shared.open(release.notesURL) }
                 }
             }
         }
