@@ -695,10 +695,10 @@ final class BluetoothObserverBridge: NSObject {
     weak var controller: HeadphoneController?
 
     @objc nonisolated func deviceConnected(_ notification: IOBluetoothUserNotification, device: IOBluetoothDevice) {
-        MainActor.assumeIsolated { controller?.basebandConnected(device) }
+        onMainActor { [self] in controller?.basebandConnected(device) }
     }
 
     @objc nonisolated func deviceDisconnected(_ notification: IOBluetoothUserNotification, device: IOBluetoothDevice) {
-        MainActor.assumeIsolated { controller?.basebandDisconnected(device) }
+        onMainActor { [self] in controller?.basebandDisconnected(device) }
     }
 }

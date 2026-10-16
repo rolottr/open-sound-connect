@@ -56,8 +56,8 @@ protocol RFCOMMTransportDelegate: AnyObject {
     func transportDidClose(_ transport: RFCOMMTransport, error: TransportError)
 }
 
-/// IOBluetooth RFCOMM channel to one headset. The channel is opened from the main thread, so IOBluetooth
-/// delivers every delegate callback on the main run loop; that is what makes `MainActor.assumeIsolated` sound.
+/// IOBluetooth RFCOMM channel to one headset. The channel is opened from the main thread, but on macOS 26
+/// IOBluetooth can still deliver delegate callbacks on its own queue, so every callback hops via `onMainActor`.
 ///
 /// Lifecycle: `open` → (data…) → exactly one of {local `close()`, `transportDidClose`}. After either, the
 /// object is dead; late IOBluetooth callbacks are ignored.
@@ -241,20 +241,20 @@ final class RFCOMMTransport: NSObject {
 
 extension RFCOMMTransport: IOBluetoothRFCOMMChannelDelegate {
     nonisolated func rfcommChannelOpenComplete(_ rfcommChannel: IOBluetoothRFCOMMChannel!, status error: IOReturn) {
-        MainActor.assumeIsolated { handleOpen(rfcommChannel, status: error) }
+        onMainActor { [self] in handleOpen(rfcommChannel, status: error) }
     }
 
     nonisolated func rfcommChannelData(_ rfcommChannel: IOBluetoothRFCOMMChannel!, data dataPointer: UnsafeMutableRawPointer!, length dataLength: Int) {
         let bytes = Array(UnsafeRawBufferPointer(start: dataPointer, count: dataLength))
-        MainActor.assumeIsolated { handleData(bytes) }
+        onMainActor { [self] in handleData(bytes) }
     }
 
     nonisolated func rfcommChannelClosed(_ rfcommChannel: IOBluetoothRFCOMMChannel!) {
-        MainActor.assumeIsolated { handleClosed() }
+        onMainActor { [self] in handleClosed() }
     }
 
     nonisolated func rfcommChannelWriteComplete(_ rfcommChannel: IOBluetoothRFCOMMChannel!, refcon: UnsafeMutableRawPointer!, status error: IOReturn) {
-        MainActor.assumeIsolated { handleWriteComplete(refcon: refcon, status: error) }
+        onMainActor { [self] in handleWriteComplete(refcon: refcon, status: error) }
     }
 }
 
@@ -283,7 +283,7 @@ private final class SDPQuery: NSObject {
     }
 
     @objc nonisolated func sdpQueryComplete(_ device: IOBluetoothDevice!, status: IOReturn) {
-        MainActor.assumeIsolated {
+        onMainActor { [self] in
             _ = shot.resolve(status == kIOReturnSuccess ? .success(()) : .failure(TransportError.sdpFailed(status)))
         }
     }
