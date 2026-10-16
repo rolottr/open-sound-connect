@@ -13,12 +13,14 @@ struct SoundConnectApp: App {
                 .environment(appDelegate.curves)
                 .environment(appDelegate.navigation)
                 .environment(appDelegate.loginItem)
+                .environment(appDelegate.updates)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1160, height: 820)
         .windowResizability(.contentMinSize)
         .commands {
-            SoundConnectCommands(controller: appDelegate.controller, scenes: appDelegate.scenes, navigation: appDelegate.navigation)
+            SoundConnectCommands(controller: appDelegate.controller, scenes: appDelegate.scenes, navigation: appDelegate.navigation,
+                                 updates: appDelegate.updates)
         }
 
         MenuBarExtra(isInserted: $showMenuBar) {
@@ -27,6 +29,7 @@ struct SoundConnectApp: App {
                 .environment(appDelegate.controller)
                 .environment(appDelegate.scenes)
                 .environment(appDelegate.navigation)
+                .environment(appDelegate.updates)
         } label: {
             MenuBarIcon().environment(appDelegate.controller)
         }
@@ -35,6 +38,7 @@ struct SoundConnectApp: App {
         Settings {
             AppPreferencesCard()
                 .environment(appDelegate.loginItem)
+                .environment(appDelegate.updates)
                 .padding(20)
                 .frame(width: 460)
                 .background(Theme.canvasTop)
@@ -49,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let navigation = Navigation()
     let curves = CurveLibrary()
     let loginItem = LoginItem()
+    let updates = UpdateChecker()
     lazy var scenes = SceneStore(controller: controller)
     /// A login launch (or `--background`) starts in the menu bar only, without a window or Dock icon.
     private var startsInBackground = false
@@ -75,6 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.start()
             scenes.startAutomation()
         }
+        updates.startAutomaticChecks()
         SnapshotRunner.runIfRequested(navigation: navigation, controller: controller, scenes: scenes, curves: curves)
         if !startsInBackground { sizeMainWindowOnFirstLaunch() }
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
@@ -84,33 +90,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.loginItem.refresh()
             }
         }
-        observeMainWindowForDockIcon()
-    }
-
-    /// While the menu bar extra is shown, the Dock icon is only visible with the main window open: closing the
-    /// window leaves the app in the menu bar alone, and reopening it from there brings the Dock icon back.
-    private func observeMainWindowForDockIcon() {
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { notification in
-            MainActor.assumeIsolated {
-                guard Self.isMainWindow(notification.object), Self.showsMenuBarExtra else { return }
-                NSApp.setActivationPolicy(.accessory)
-            }
-        }
-        NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { notification in
-            MainActor.assumeIsolated {
-                guard Self.isMainWindow(notification.object), NSApp.activationPolicy() != .regular else { return }
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
-            }
-        }
-    }
-
-    private static func isMainWindow(_ object: Any?) -> Bool {
-        (object as? NSWindow)?.title == "Sound Connect"
-    }
-
-    private static var showsMenuBarExtra: Bool {
-        UserDefaults.standard.object(forKey: "showMenuBarExtra") as? Bool ?? true
     }
 
     /// SwiftUI always presents the `Window` scene at launch (it ignores `applicationShouldOpenUntitledFile`), so a
@@ -138,7 +117,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated {
                 guard let self, !self.startsInBackground,
                       let window = note.object as? NSWindow, Self.isAppWindow(window) else { return }
-                if NSApp.activationPolicy() != .regular { NSApp.setActivationPolicy(.regular) }
+                guard NSApp.activationPolicy() != .regular else { return }
+                NSApp.setActivationPolicy(.regular)
+                // Coming back from accessory, the app must be active again for its menus to show.
+                NSApp.activate(ignoringOtherApps: true)
             }
         }
         center.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { note in
@@ -189,9 +171,15 @@ struct SoundConnectCommands: Commands {
     let controller: HeadphoneController
     let scenes: SceneStore
     let navigation: Navigation
+    let updates: UpdateChecker
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {}
+
+        CommandGroup(after: .appInfo) {
+            Button("Check for Updates…") { Task { await updates.checkAndReport() } }
+                .disabled(updates.state == .checking)
+        }
 
         CommandGroup(after: .sidebar) {
             ForEach(AppPage.allCases) { page in

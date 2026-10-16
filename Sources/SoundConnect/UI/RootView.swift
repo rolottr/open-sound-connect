@@ -69,7 +69,7 @@ struct RootView: View {
         .frame(minWidth: 920, minHeight: 640)
         .background(Theme.canvasBottom)
         .overlay(alignment: .bottom) { ToastView() }
-        .overlay(alignment: .bottomTrailing) { LoginItemOffer() }
+        .overlay(alignment: .bottomTrailing) { OfferStack() }
         .preferredColorScheme(.dark)
         .tint(Theme.accent)
         .alert(controller.state.alert?.title ?? "",

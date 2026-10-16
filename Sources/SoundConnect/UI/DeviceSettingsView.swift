@@ -14,6 +14,7 @@ struct DeviceSettingsView: View {
                 PageHeader(title: "Settings")
                 AdaptiveColumns {
                     AppPreferencesCard()
+                    UpdatesCard()
                     Card("Headphones", symbol: "headphones") {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("Connect your headphones to change their settings.")
@@ -50,6 +51,7 @@ struct DeviceSettingsView: View {
                     if caps.ncOptimizer { OptimizerCard() }
                     DeviceInfoCard()
                     AppPreferencesCard()
+                    UpdatesCard()
                 }
             }
             .padding(Theme.pagePadding)
@@ -410,72 +412,58 @@ struct AppPreferencesCard: View {
     }
 }
 
-/// A one-time, dismissible offer to open at login, shown a moment after the first connection — once the app has
-/// proved useful — rather than on first launch. The same choice lives in Settings.
-struct LoginItemOffer: View {
-    @Environment(LoginItem.self) private var loginItem
-    @Environment(HeadphoneController.self) private var controller
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var visible = false
+struct UpdatesCard: View {
+    @Environment(UpdateChecker.self) private var updates
 
     var body: some View {
-        ZStack {
-            if visible && loginItem.shouldOffer {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "power")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Theme.onAccent)
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(Theme.accent))
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Open Sound Connect at login?")
-                                .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Theme.text)
-                            Text("It starts quietly in the menu bar, so your controls and scene automations are ready when you are. You can change this in Settings.")
-                                .font(.system(size: 12)).foregroundStyle(Theme.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+        @Bindable var updates = updates
+        Card("Updates", subtitle: "Version \(updates.currentVersion)", symbol: "arrow.down.circle") {
+            VStack(spacing: 14) {
+                SettingRow(symbol: "clock.arrow.circlepath", title: "Check Automatically",
+                           detail: "Asks GitHub once a day whether a newer release is published. Nothing about you or your headphones is sent.") {
+                    Toggle("Check Automatically", isOn: $updates.checksAutomatically)
+                        .labelsHidden().toggleStyle(AccentToggleStyle())
+                }
+                RowDivider()
+                SettingRow(symbol: statusSymbol, title: statusTitle, detail: statusDetail) {
+                    HStack(spacing: 10) {
+                        if let release = updates.available {
+                            Button("Release Notes") { NSWorkspace.shared.open(release.notesURL) }
+                            Button("Download") { updates.download(release) }
+                                .buttonStyle(.borderedProminent).tint(Theme.accent).foregroundStyle(Theme.onAccent)
+                        } else if updates.state == .checking {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Button("Check Now") { Task { await updates.check() } }
                         }
                     }
-                    HStack(spacing: 8) {
-                        Spacer()
-                        Button("Not Now") { loginItem.answerOffer() }
-                        Button("Open at Login") { accept() }
-                            .buttonStyle(.borderedProminent).tint(Theme.accent).foregroundStyle(Theme.onAccent)
-                    }
-                    .controlSize(.regular)
+                    .controlSize(.small)
                 }
-                .padding(16)
-                .frame(width: 360)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.cardRaised)
-                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.08)))
-                        .shadow(color: .black.opacity(0.45), radius: 22, y: 10)
-                )
-                .padding(22)
-                .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
-                .accessibilityElement(children: .contain)
             }
-        }
-        .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85), value: visible && loginItem.shouldOffer)
-        .task(id: controller.isConnected) {
-            guard controller.isConnected, loginItem.shouldOffer, !controller.isReplay else { return }
-            // Let the first connection settle before asking for anything.
-            try? await Task.sleep(for: .seconds(3))
-            visible = true
         }
     }
 
-    private func accept() {
-        loginItem.setEnabled(true)
-        switch loginItem.status {
-        case .enabled:
-            controller.showToast(.info, "Sound Connect will open at login.")
-        case .requiresApproval:
-            controller.showToast(.warning, "Allow Sound Connect in System Settings to finish turning on Open at Login.")
-            loginItem.openSystemSettings()
-        case .disabled, .unavailable:
-            controller.showToast(.error, loginItem.error ?? "Open at Login isn’t available for this copy of Sound Connect.")
+    private var statusSymbol: String {
+        switch updates.state {
+        case .available: "sparkles"
+        case .failed: "exclamationmark.triangle"
+        default: "checkmark.seal"
         }
+    }
+
+    private var statusTitle: String {
+        switch updates.state {
+        case .available(let release): "Version \(release.version) Available"
+        case .upToDate: "Up to Date"
+        case .checking: "Checking…"
+        case .failed: "Couldn’t Check"
+        case .idle: "Software Update"
+        }
+    }
+
+    private var statusDetail: String? {
+        if case .failed(let message) = updates.state { return message }
+        if updates.available != nil { return "Download it, then replace the app in your Applications folder." }
+        return updates.lastChecked.map { "Last checked \($0.formatted(.relative(presentation: .named)))." }
     }
 }

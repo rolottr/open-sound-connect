@@ -61,6 +61,8 @@ The app bundle is named **Sound Connect.app**. Closing the main window keeps the
 
 After your headphones first connect, Sound Connect offers once to open at login; the same switch is under **Settings → Sound Connect**. When opened at login it starts quietly in the menu bar. Launching with `--background` does the same for testing.
 
+Sound Connect checks this repository's GitHub Releases once a day. When a newer version is out it offers to download the archive for your Mac's architecture; replace the app in your Applications folder with the new one. You can also choose **Sound Connect → Check for Updates…**.
+
 ### About downloaded builds
 
 Current builds are **ad-hoc signed**, not Developer ID signed or notarized. macOS may block a downloaded copy. Building locally is the supported starting point if you cannot open a downloaded build. The project does not include a signing certificate or require you to disable system security settings.
@@ -176,7 +178,7 @@ The **Headphones** and **Scenes** menus expose additional actions and their shor
 
 ## Privacy and local storage
 
-The app communicates directly with the headset over local Bluetooth. It has no account system, analytics or cloud backend.
+The app communicates directly with the headset over local Bluetooth. It has no account system, analytics or cloud backend. Its only network request is the update check: once a day it reads this repository's latest public release from the GitHub API, sending nothing about you or your headphones. Turn it off under **Settings → Updates → Check Automatically**.
 
 Now Playing reads media metadata and artwork locally from macOS using the bundled [MediaRemote Adapter](Vendor/MediaRemoteAdapter/UPSTREAM.md). It does not fetch cover images from the internet or store listening history. This integration uses a private macOS interface; if unavailable, the app falls back to the metadata supplied by the headphones. Replay mode never starts the macOS media helper.
 
