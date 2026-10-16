@@ -419,8 +419,7 @@ struct UpdatesCard: View {
         @Bindable var updates = updates
         Card("Updates", subtitle: "Version \(updates.currentVersion)", symbol: "arrow.down.circle") {
             VStack(spacing: 14) {
-                SettingRow(symbol: "clock.arrow.circlepath", title: "Check Automatically",
-                           detail: "Asks GitHub once a day whether a newer release is published. Nothing about you or your headphones is sent.") {
+                SettingRow(symbol: "clock.arrow.circlepath", title: "Check Automatically") {
                     Toggle("Check Automatically", isOn: $updates.checksAutomatically)
                         .labelsHidden().toggleStyle(AccentToggleStyle())
                 }
