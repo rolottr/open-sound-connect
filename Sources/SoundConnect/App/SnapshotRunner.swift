@@ -37,7 +37,7 @@ enum SnapshotRunner {
             navigation.page = .myDevice
             if let scenes, let curves {
                 renderOffscreen(MenuBarView()
-                    .environment(controller).environment(scenes).environment(navigation),
+                    .environment(controller).environment(scenes).environment(navigation).environment(UpdateChecker()),
                     width: 320, to: directory.appendingPathComponent("menubar.png"))
                 if let scene = scenes.scenes.first {
                     renderOffscreen(SceneEditor(scene: scene, isNew: false) { _ in }

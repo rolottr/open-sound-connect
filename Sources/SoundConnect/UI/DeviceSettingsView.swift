@@ -1,13 +1,41 @@
-import ServiceManagement
 import SwiftUI
 
 struct DeviceSettingsView: View {
     @Environment(HeadphoneController.self) private var controller
 
     var body: some View {
+        if controller.isConnected { connected } else { disconnected }
+    }
+
+    /// App preferences stay reachable without headphones; only the headset's own settings need a connection.
+    private var disconnected: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.cardSpacing) {
+                PageHeader(title: "Settings")
+                AdaptiveColumns {
+                    AppPreferencesCard()
+                    UpdatesCard()
+                    Card("Headphones", symbol: "headphones") {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Connect your headphones to change their settings.")
+                                .font(.body15).foregroundStyle(Theme.secondary)
+                            if let address = controller.selectedAddress, !controller.phase.isBusy, !controller.isReplay {
+                                Button("Connect") { controller.connect(address: address, initiate: true) }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(Theme.pagePadding)
+            .frame(maxWidth: 1100, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var connected: some View {
         let state = controller.state
         let caps = state.capabilities
-        ScrollView {
+        return ScrollView {
             VStack(alignment: .leading, spacing: Theme.cardSpacing) {
                 PageHeader(title: "Headphone Settings")
                 AdaptiveColumns {
@@ -23,6 +51,7 @@ struct DeviceSettingsView: View {
                     if caps.ncOptimizer { OptimizerCard() }
                     DeviceInfoCard()
                     AppPreferencesCard()
+                    UpdatesCard()
                 }
             }
             .padding(Theme.pagePadding)
@@ -337,32 +366,102 @@ struct DeviceInfoCard: View {
 }
 
 struct AppPreferencesCard: View {
+    @Environment(LoginItem.self) private var loginItem
     @AppStorage("showMenuBarExtra") private var showMenuBar = true
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    @State private var loginError: String?
 
     var body: some View {
         Card("Sound Connect", symbol: "macwindow") {
             VStack(spacing: 14) {
-                SettingRow(symbol: "menubar.rectangle", title: "Show in Menu Bar") {
+                SettingRow(symbol: "menubar.rectangle", title: "Show in Menu Bar",
+                           detail: showMenuBar
+                               ? "Closing the window keeps Sound Connect running in the menu bar. Quit from there or with ⌘Q."
+                               : "Closing the window quits Sound Connect and stops scene automations.") {
                     Toggle("Show in Menu Bar", isOn: $showMenuBar).labelsHidden().toggleStyle(AccentToggleStyle())
                 }
                 RowDivider()
-                SettingRow(symbol: "power", title: "Open at Login", detail: loginError) {
-                    Toggle("Open at Login", isOn: Binding(get: { launchAtLogin }, set: { setLogin($0) }))
+                SettingRow(symbol: "power", title: "Open at Login", detail: loginDetail) {
+                    HStack(spacing: 10) {
+                        if loginItem.status == .requiresApproval {
+                            Button("Open System Settings") { loginItem.openSystemSettings() }
+                                .controlSize(.small)
+                        }
+                        Toggle("Open at Login", isOn: Binding(
+                            get: { loginItem.status == .enabled || loginItem.status == .requiresApproval },
+                            set: { loginItem.setEnabled($0) }))
+                            .labelsHidden().toggleStyle(AccentToggleStyle())
+                            .disabled(loginItem.status == .unavailable)
+                    }
+                }
+            }
+        }
+        .onAppear { loginItem.refresh() }
+    }
+
+    private var loginDetail: String? {
+        if let error = loginItem.error { return error }
+        return switch loginItem.status {
+        case .enabled:
+            showMenuBar ? "Starts quietly in the menu bar when you log in." : "Opens when you log in."
+        case .requiresApproval:
+            "Allow Sound Connect in System Settings → General → Login Items."
+        case .unavailable:
+            "Not available for this copy. Move Sound Connect to the Applications folder and open it from there."
+        case .disabled:
+            "Have your menu bar controls and scenes ready as soon as you log in."
+        }
+    }
+}
+
+struct UpdatesCard: View {
+    @Environment(UpdateChecker.self) private var updates
+
+    var body: some View {
+        @Bindable var updates = updates
+        Card("Updates", subtitle: "Version \(updates.currentVersion)", symbol: "arrow.down.circle") {
+            VStack(spacing: 14) {
+                SettingRow(symbol: "clock.arrow.circlepath", title: "Check Automatically") {
+                    Toggle("Check Automatically", isOn: $updates.checksAutomatically)
                         .labelsHidden().toggleStyle(AccentToggleStyle())
+                }
+                RowDivider()
+                SettingRow(symbol: statusSymbol, title: statusTitle, detail: statusDetail) {
+                    HStack(spacing: 10) {
+                        if let release = updates.available {
+                            Button("Download") { updates.download(release) }
+                                .buttonStyle(.borderedProminent).tint(Theme.accent).foregroundStyle(Theme.onAccent)
+                        } else if updates.state == .checking {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Button("Check Now") { Task { await updates.check() } }
+                        }
+                    }
+                    .controlSize(.small)
                 }
             }
         }
     }
 
-    private func setLogin(_ on: Bool) {
-        do {
-            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-            loginError = nil
-        } catch {
-            loginError = error.localizedDescription
+    private var statusSymbol: String {
+        switch updates.state {
+        case .available: "sparkles"
+        case .failed: "exclamationmark.triangle"
+        default: "checkmark.seal"
         }
-        launchAtLogin = SMAppService.mainApp.status == .enabled
+    }
+
+    private var statusTitle: String {
+        switch updates.state {
+        case .available(let release): "Version \(release.version) Available"
+        case .upToDate: "Up to Date"
+        case .checking: "Checking…"
+        case .failed: "Couldn’t Check"
+        case .idle: "Software Update"
+        }
+    }
+
+    private var statusDetail: String? {
+        if case .failed(let message) = updates.state { return message }
+        if updates.available != nil { return "Download opens the release page on GitHub. Replace the app in your Applications folder with the new one." }
+        return updates.lastChecked.map { "Last checked \($0.formatted(.relative(presentation: .named)))." }
     }
 }

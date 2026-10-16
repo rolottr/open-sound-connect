@@ -5,6 +5,7 @@ struct MenuBarView: View {
     @Environment(HeadphoneController.self) private var controller
     @Environment(SceneStore.self) private var scenes
     @Environment(Navigation.self) private var navigation
+    @Environment(UpdateChecker.self) private var updates
     @Environment(\.openWindow) private var openWindow
     @AppStorage("lastAmbientLevel") private var rememberedLevel = 12
 
@@ -135,8 +136,20 @@ struct MenuBarView: View {
             }
 
             Divider().overlay(Theme.hairline)
+            if let release = updates.available {
+                Button {
+                    updates.download(release)
+                } label: {
+                    Label("Download Sound Connect \(release.version)", systemImage: "arrow.down.circle.fill")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(Theme.accent)
+            }
             HStack {
                 Button("Open Sound Connect") {
+                    // The app drops its Dock icon while only the menu bar item is open; bring it back with the window.
+                    NSApp.setActivationPolicy(.regular)
                     openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
                 }

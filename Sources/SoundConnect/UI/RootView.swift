@@ -34,7 +34,8 @@ enum AppPage: String, CaseIterable, Identifiable {
         }
     }
 
-    var needsConnection: Bool { self == .myDevice || self == .sound || self == .settings }
+    /// Settings handles the disconnected case itself so app preferences stay reachable.
+    var needsConnection: Bool { self == .myDevice || self == .sound }
 }
 
 @MainActor
@@ -68,6 +69,7 @@ struct RootView: View {
         .frame(minWidth: 920, minHeight: 640)
         .background(Theme.canvasBottom)
         .overlay(alignment: .bottom) { ToastView() }
+        .overlay(alignment: .bottomTrailing) { OfferStack() }
         .preferredColorScheme(.dark)
         .tint(Theme.accent)
         .alert(controller.state.alert?.title ?? "",
