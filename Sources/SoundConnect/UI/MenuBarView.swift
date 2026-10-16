@@ -137,6 +137,8 @@ struct MenuBarView: View {
             Divider().overlay(Theme.hairline)
             HStack {
                 Button("Open Sound Connect") {
+                    // The app drops its Dock icon while only the menu bar item is open; bring it back with the window.
+                    NSApp.setActivationPolicy(.regular)
                     openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
                 }

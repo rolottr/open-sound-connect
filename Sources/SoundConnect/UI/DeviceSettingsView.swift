@@ -1,13 +1,40 @@
-import ServiceManagement
 import SwiftUI
 
 struct DeviceSettingsView: View {
     @Environment(HeadphoneController.self) private var controller
 
     var body: some View {
+        if controller.isConnected { connected } else { disconnected }
+    }
+
+    /// App preferences stay reachable without headphones; only the headset's own settings need a connection.
+    private var disconnected: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.cardSpacing) {
+                PageHeader(title: "Settings")
+                AdaptiveColumns {
+                    AppPreferencesCard()
+                    Card("Headphones", symbol: "headphones") {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Connect your headphones to change their settings.")
+                                .font(.body15).foregroundStyle(Theme.secondary)
+                            if let address = controller.selectedAddress, !controller.phase.isBusy, !controller.isReplay {
+                                Button("Connect") { controller.connect(address: address, initiate: true) }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(Theme.pagePadding)
+            .frame(maxWidth: 1100, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var connected: some View {
         let state = controller.state
         let caps = state.capabilities
-        ScrollView {
+        return ScrollView {
             VStack(alignment: .leading, spacing: Theme.cardSpacing) {
                 PageHeader(title: "Headphone Settings")
                 AdaptiveColumns {
@@ -337,32 +364,118 @@ struct DeviceInfoCard: View {
 }
 
 struct AppPreferencesCard: View {
+    @Environment(LoginItem.self) private var loginItem
     @AppStorage("showMenuBarExtra") private var showMenuBar = true
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    @State private var loginError: String?
 
     var body: some View {
         Card("Sound Connect", symbol: "macwindow") {
             VStack(spacing: 14) {
-                SettingRow(symbol: "menubar.rectangle", title: "Show in Menu Bar") {
+                SettingRow(symbol: "menubar.rectangle", title: "Show in Menu Bar",
+                           detail: showMenuBar
+                               ? "Closing the window keeps Sound Connect running in the menu bar. Quit from there or with ⌘Q."
+                               : "Closing the window quits Sound Connect and stops scene automations.") {
                     Toggle("Show in Menu Bar", isOn: $showMenuBar).labelsHidden().toggleStyle(AccentToggleStyle())
                 }
                 RowDivider()
-                SettingRow(symbol: "power", title: "Open at Login", detail: loginError) {
-                    Toggle("Open at Login", isOn: Binding(get: { launchAtLogin }, set: { setLogin($0) }))
-                        .labelsHidden().toggleStyle(AccentToggleStyle())
+                SettingRow(symbol: "power", title: "Open at Login", detail: loginDetail) {
+                    HStack(spacing: 10) {
+                        if loginItem.status == .requiresApproval {
+                            Button("Open System Settings") { loginItem.openSystemSettings() }
+                                .controlSize(.small)
+                        }
+                        Toggle("Open at Login", isOn: Binding(
+                            get: { loginItem.status == .enabled || loginItem.status == .requiresApproval },
+                            set: { loginItem.setEnabled($0) }))
+                            .labelsHidden().toggleStyle(AccentToggleStyle())
+                            .disabled(loginItem.status == .unavailable)
+                    }
                 }
             }
         }
+        .onAppear { loginItem.refresh() }
     }
 
-    private func setLogin(_ on: Bool) {
-        do {
-            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-            loginError = nil
-        } catch {
-            loginError = error.localizedDescription
+    private var loginDetail: String? {
+        if let error = loginItem.error { return error }
+        return switch loginItem.status {
+        case .enabled:
+            showMenuBar ? "Starts quietly in the menu bar when you log in." : "Opens when you log in."
+        case .requiresApproval:
+            "Allow Sound Connect in System Settings → General → Login Items."
+        case .unavailable:
+            "Not available for this copy. Move Sound Connect to the Applications folder and open it from there."
+        case .disabled:
+            "Have your menu bar controls and scenes ready as soon as you log in."
         }
-        launchAtLogin = SMAppService.mainApp.status == .enabled
+    }
+}
+
+/// A one-time, dismissible offer to open at login, shown a moment after the first connection — once the app has
+/// proved useful — rather than on first launch. The same choice lives in Settings.
+struct LoginItemOffer: View {
+    @Environment(LoginItem.self) private var loginItem
+    @Environment(HeadphoneController.self) private var controller
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var visible = false
+
+    var body: some View {
+        ZStack {
+            if visible && loginItem.shouldOffer {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "power")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.onAccent)
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(Theme.accent))
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Open Sound Connect at login?")
+                                .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Theme.text)
+                            Text("It starts quietly in the menu bar, so your controls and scene automations are ready when you are. You can change this in Settings.")
+                                .font(.system(size: 12)).foregroundStyle(Theme.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    HStack(spacing: 8) {
+                        Spacer()
+                        Button("Not Now") { loginItem.answerOffer() }
+                        Button("Open at Login") { accept() }
+                            .buttonStyle(.borderedProminent).tint(Theme.accent).foregroundStyle(Theme.onAccent)
+                    }
+                    .controlSize(.regular)
+                }
+                .padding(16)
+                .frame(width: 360)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.cardRaised)
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.08)))
+                        .shadow(color: .black.opacity(0.45), radius: 22, y: 10)
+                )
+                .padding(22)
+                .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
+                .accessibilityElement(children: .contain)
+            }
+        }
+        .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85), value: visible && loginItem.shouldOffer)
+        .task(id: controller.isConnected) {
+            guard controller.isConnected, loginItem.shouldOffer, !controller.isReplay else { return }
+            // Let the first connection settle before asking for anything.
+            try? await Task.sleep(for: .seconds(3))
+            visible = true
+        }
+    }
+
+    private func accept() {
+        loginItem.setEnabled(true)
+        switch loginItem.status {
+        case .enabled:
+            controller.showToast(.info, "Sound Connect will open at login.")
+        case .requiresApproval:
+            controller.showToast(.warning, "Allow Sound Connect in System Settings to finish turning on Open at Login.")
+            loginItem.openSystemSettings()
+        case .disabled, .unavailable:
+            controller.showToast(.error, loginItem.error ?? "Open at Login isn’t available for this copy of Sound Connect.")
+        }
     }
 }

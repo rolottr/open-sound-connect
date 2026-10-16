@@ -12,6 +12,7 @@ struct SoundConnectApp: App {
                 .environment(appDelegate.scenes)
                 .environment(appDelegate.curves)
                 .environment(appDelegate.navigation)
+                .environment(appDelegate.loginItem)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1160, height: 820)
@@ -33,6 +34,7 @@ struct SoundConnectApp: App {
 
         Settings {
             AppPreferencesCard()
+                .environment(appDelegate.loginItem)
                 .padding(20)
                 .frame(width: 460)
                 .background(Theme.canvasTop)
@@ -46,9 +48,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let controller = HeadphoneController()
     let navigation = Navigation()
     let curves = CurveLibrary()
+    let loginItem = LoginItem()
     lazy var scenes = SceneStore(controller: controller)
+    /// A login launch (or `--background`) starts in the menu bar only, without a window or Dock icon.
+    private var startsInBackground = false
+
+    /// Read live so the menu bar toggle takes effect without a relaunch; on by default.
+    static var showsMenuBarExtra: Bool {
+        UserDefaults.standard.object(forKey: "showMenuBarExtra") as? Bool ?? true
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        startsInBackground = Self.showsMenuBarExtra && !LaunchContext.isDeveloperRun
+            && (LaunchContext.wasLaunchedAtLogin() || LaunchContext.requestsBackground)
+        if startsInBackground {
+            NSApp.setActivationPolicy(.accessory)
+            closeLaunchWindow()
+        }
+        observeAppWindows()
         let arguments = CommandLine.arguments
         if let index = arguments.firstIndex(of: "--replay"), index + 1 < arguments.count {
             // Developer replay of a recorded `--probe` report: no Bluetooth, no automations, read-only.
@@ -59,9 +76,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             scenes.startAutomation()
         }
         SnapshotRunner.runIfRequested(navigation: navigation, controller: controller, scenes: scenes, curves: curves)
-        sizeMainWindowOnFirstLaunch()
+        if !startsInBackground { sizeMainWindowOnFirstLaunch() }
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.controller.refreshStatus() }
+            MainActor.assumeIsolated {
+                self?.controller.refreshStatus()
+                // The person may have approved or removed the login item in System Settings meanwhile.
+                self?.loginItem.refresh()
+            }
         }
         observeMainWindowForDockIcon()
     }
@@ -92,6 +113,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.object(forKey: "showMenuBarExtra") as? Bool ?? true
     }
 
+    /// SwiftUI always presents the `Window` scene at launch (it ignores `applicationShouldOpenUntitledFile`), so a
+    /// background launch closes that window on the first update after it appears.
+    private func closeLaunchWindow() {
+        var observer: NSObjectProtocol?
+        let giveUp = Date().addingTimeInterval(5)
+        observer = NotificationCenter.default.addObserver(forName: NSApplication.didUpdateNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                let window = NSApp.windows.first { $0.isVisible && Self.isAppWindow($0) }
+                guard window != nil || Date() > giveUp else { return }
+                if let observer { NotificationCenter.default.removeObserver(observer) }
+                self?.startsInBackground = false
+                window?.close()
+                NSApp.setActivationPolicy(.accessory)
+            }
+        }
+    }
+
+    /// Like most menu bar apps: while a window is open the app has a Dock icon and menus; once the last one closes
+    /// it steps back to the menu bar (no Dock icon, not in ⌘-Tab) and keeps running.
+    private func observeAppWindows() {
+        let center = NotificationCenter.default
+        center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { [weak self] note in
+            MainActor.assumeIsolated {
+                guard let self, !self.startsInBackground,
+                      let window = note.object as? NSWindow, Self.isAppWindow(window) else { return }
+                if NSApp.activationPolicy() != .regular { NSApp.setActivationPolicy(.regular) }
+            }
+        }
+        center.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { note in
+            MainActor.assumeIsolated {
+                guard let closing = note.object as? NSWindow, Self.isAppWindow(closing), Self.showsMenuBarExtra else { return }
+                let othersOpen = NSApp.windows.contains { $0 !== closing && $0.isVisible && Self.isAppWindow($0) }
+                if !othersOpen { NSApp.setActivationPolicy(.accessory) }
+            }
+        }
+    }
+
+    /// The main and Settings windows; not the menu bar panel, sheets or alerts.
+    private static func isAppWindow(_ window: NSWindow) -> Bool {
+        !(window is NSPanel) && !window.isSheet && window.styleMask.contains(.titled) && window.canBecomeMain
+    }
+
     /// SwiftUI's `defaultSize` is not always honoured for a `Window` without a saved frame (observed: the window
     /// opened at full screen size on a 3440-pt display), so size and centre it explicitly the first time.
     private func sizeMainWindowOnFirstLaunch() {
@@ -107,11 +170,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         // Keep running for the menu bar controls and scene automations.
-        !UserDefaults.standard.bool(forKey: "showMenuBarExtra") && UserDefaults.standard.object(forKey: "showMenuBarExtra") != nil
+        !Self.showsMenuBarExtra
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        true
+        // Opening the app again from Finder or Spotlight while it lives in the menu bar brings the window back.
+        NSApp.setActivationPolicy(.regular)
+        return true
     }
 
     func applicationWillTerminate(_ notification: Notification) {
