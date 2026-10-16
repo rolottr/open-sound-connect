@@ -26,7 +26,7 @@ The app communicates directly with the headphones using their Bluetooth control 
 
 | | What you can do |
 | --- | --- |
-| **Interactive device view** | Inspect a locally rendered WH-1000XM4 model. Hold the left mouse button and drag to rotate; use the reset button to return to the original angle. |
+| **Interactive device view** | Inspect a locally rendered model of your WH-1000XM4, WH-1000XM5 or WH-1000XM6. Hold the left mouse button and drag to rotate; use the reset button to return to the original angle. |
 | **Noise control** | Switch between noise canceling, wind reduction, ambient sound and off. Adjust ambient level and Focus on Voice where supported. |
 | **Equalizer** | Choose presets, adjust bands and Clear Bass, view the curve, and save curves locally. WH-1000XM4 exposes five bands plus Clear Bass. |
 | **Sound quality** | Control DSEE, see the active codec, and select sound-quality or connection-stability priority. |
@@ -130,15 +130,16 @@ When using Command Line Tools, the script prefers an installed macOS 26 SDK to a
 
 ### Headphone artwork
 
-The app bundles its 3D model and thumbnail, so Blender is not required to build or run it. To edit the model, open [`artwork/WH-1000XM4.blend`](artwork/WH-1000XM4.blend) in Blender. The scene includes the product, materials, camera and studio lights.
+The app bundles a 3D model and thumbnail for the WH-1000XM4, WH-1000XM5 and WH-1000XM6, so Blender is not required to build or run it. The app picks the model matching the connected headphones; other models show a generic illustration. To edit a model, open its `.blend` file in [`artwork/`](artwork/) with Blender. Each scene includes the product, materials, camera and studio lights.
 
-To regenerate the scene, USDZ and thumbnail with Blender 5.2:
+To regenerate the scenes, USDZ files and thumbnails with Blender 5.2:
 
 ```sh
 blender --background --python artwork/generate_headphones.py
+blender --background --factory-startup --python artwork/generate_wh1000xm5_xm6.py -- XM5 XM6
 ```
 
-The generator creates its own scene and exports only that scene's product geometry. Reference photographs and font files are not bundled. The app uses SceneKit for local rendering; dragging the model does not change headphone settings.
+The generators create their own scenes and export only the product geometry. The XM5 and XM6 share the XM4's studio, camera and overall height, so all three are framed alike. Reference photographs and font files are not bundled. The app uses SceneKit for local rendering; dragging the model does not change headphone settings.
 
 ### Package a build
 
@@ -228,6 +229,6 @@ Created by [rolottr](https://github.com/rolottr). Released under the [MIT Licens
 
 The bundled [MediaRemote Adapter](https://github.com/ungive/mediaremote-adapter) is by Jonas van den Berg and contributors, under its [BSD-3-Clause license](Vendor/MediaRemoteAdapter/LICENSE). Its pinned source is in `Vendor/MediaRemoteAdapter`, and its license is included in the app bundle.
 
-Protocol research benefited from [SonyHeadphonesClient](https://github.com/mos9527/SonyHeadphonesClient), [Plutoberth’s SonyHeadphonesClient](https://github.com/Plutoberth/SonyHeadphonesClient) and [SonyBridge](https://github.com/AmitRajput-Dev/SonyBridge). See [artwork attribution](Resources/Artwork/ATTRIBUTION.md) for the bundled icon. The WH-1000XM4 model and thumbnail are original Blender artwork; other models use a generic SwiftUI illustration. The editable scene and generator are in [`artwork/`](artwork/). Sony product names and marks identify the depicted device and belong to their respective owners.
+Protocol research benefited from [SonyHeadphonesClient](https://github.com/mos9527/SonyHeadphonesClient), [Plutoberth’s SonyHeadphonesClient](https://github.com/Plutoberth/SonyHeadphonesClient) and [SonyBridge](https://github.com/AmitRajput-Dev/SonyBridge). See [artwork attribution](Resources/Artwork/ATTRIBUTION.md) for the bundled icon. The WH-1000XM4, WH-1000XM5 and WH-1000XM6 models and thumbnails are original Blender artwork; other models use a generic SwiftUI illustration. The editable scenes and generators are in [`artwork/`](artwork/). Sony product names and marks identify the depicted device and belong to their respective owners.
 
 Sony names and trademarks belong to their respective owners. This project is not affiliated with Sony Corporation.
