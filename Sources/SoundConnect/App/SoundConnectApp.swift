@@ -63,6 +63,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.controller.refreshStatus() }
         }
+        observeMainWindowForDockIcon()
+    }
+
+    /// While the menu bar extra is shown, the Dock icon is only visible with the main window open: closing the
+    /// window leaves the app in the menu bar alone, and reopening it from there brings the Dock icon back.
+    private func observeMainWindowForDockIcon() {
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { notification in
+            MainActor.assumeIsolated {
+                guard Self.isMainWindow(notification.object), Self.showsMenuBarExtra else { return }
+                NSApp.setActivationPolicy(.accessory)
+            }
+        }
+        NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { notification in
+            MainActor.assumeIsolated {
+                guard Self.isMainWindow(notification.object), NSApp.activationPolicy() != .regular else { return }
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+
+    private static func isMainWindow(_ object: Any?) -> Bool {
+        (object as? NSWindow)?.title == "Sound Connect"
+    }
+
+    private static var showsMenuBarExtra: Bool {
+        UserDefaults.standard.object(forKey: "showMenuBarExtra") as? Bool ?? true
     }
 
     /// SwiftUI's `defaultSize` is not always honoured for a `Window` without a saved frame (observed: the window
