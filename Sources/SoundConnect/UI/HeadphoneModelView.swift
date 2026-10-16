@@ -4,10 +4,12 @@ import SwiftUI
 
 /// A local, interactive product model. Dragging changes only its presentation, never headset settings.
 struct HeadphoneModelView: View {
+    /// Bundled USDZ base name, e.g. "WH-1000XM5".
+    let resourceName: String
     @State private var resetID = 0
 
     var body: some View {
-        HeadphoneModelCanvas(resetID: resetID)
+        HeadphoneModelCanvas(resourceName: resourceName, resetID: resetID)
             .frame(height: 268)
             .overlay(alignment: .bottomTrailing) {
                 Button {
@@ -26,13 +28,19 @@ struct HeadphoneModelView: View {
 }
 
 private struct HeadphoneModelCanvas: NSViewRepresentable {
+    let resourceName: String
     let resetID: Int
 
     func makeNSView(context: Context) -> HeadphoneSceneView {
-        HeadphoneSceneView(frame: .zero)
+        let view = HeadphoneSceneView(frame: .zero)
+        view.load(resourceName)
+        return view
     }
 
     func updateNSView(_ view: HeadphoneSceneView, context: Context) {
+        if view.resourceName != resourceName {
+            view.load(resourceName)
+        }
         if view.resetID != resetID {
             view.resetID = resetID
             view.resetOrientation()
@@ -42,6 +50,7 @@ private struct HeadphoneModelCanvas: NSViewRepresentable {
 
 final class HeadphoneSceneView: SCNView {
     var resetID = 0
+    private(set) var resourceName: String?
     private let pivot = SCNNode()
     private var yaw: CGFloat = -0.58
     private var pitch: CGFloat = -0.13
@@ -58,7 +67,6 @@ final class HeadphoneSceneView: SCNView {
         setupScene()
         setAccessibilityElement(true)
         setAccessibilityRole(.image)
-        setAccessibilityLabel("Interactive WH-1000XM4 model")
         setAccessibilityHelp("Hold the left mouse button and drag to rotate. Arrow keys rotate; Space resets the view.")
         setAccessibilityCustomActions([
             NSAccessibilityCustomAction(name: "Rotate left") { [weak self] in self?.rotate(horizontal: -0.2, vertical: 0); return true },
@@ -73,15 +81,6 @@ final class HeadphoneSceneView: SCNView {
         let scene = SCNScene()
         self.scene = scene
         scene.rootNode.addChildNode(pivot)
-        if let url = Bundle.main.url(forResource: "WH-1000XM4", withExtension: "usdz"),
-           let product = try? SCNScene(url: url) {
-            let content = product.rootNode.clone()
-            let bounds = content.boundingBox
-            content.position = SCNVector3(-(bounds.min.x + bounds.max.x) / 2,
-                                          -(bounds.min.y + bounds.max.y) / 2,
-                                          -(bounds.min.z + bounds.max.z) / 2)
-            pivot.addChildNode(content)
-        }
         let camera = SCNNode()
         camera.camera = SCNCamera()
         camera.camera?.usesOrthographicProjection = true
@@ -100,6 +99,22 @@ final class HeadphoneSceneView: SCNView {
         addLight(to: scene, type: .directional, position: SCNVector3(0.3, 0.1, 0.25), color: NSColor(red: 1, green: 0.91, blue: 0.82, alpha: 1), intensity: 280)
         addLight(to: scene, type: .directional, position: SCNVector3(0.1, 0.3, -0.3), color: NSColor(red: 0.79, green: 0.86, blue: 1, alpha: 1), intensity: 650)
         resetOrientation()
+    }
+
+    /// Shows the bundled model with this base name, keeping the current orientation.
+    func load(_ name: String) {
+        resourceName = name
+        setAccessibilityLabel("Interactive \(name) model")
+        pivot.childNodes.forEach { $0.removeFromParentNode() }
+        guard let url = Bundle.main.url(forResource: name, withExtension: "usdz"),
+              let product = try? SCNScene(url: url) else { return }
+        let content = product.rootNode.clone()
+        let bounds = content.boundingBox
+        content.position = SCNVector3(-(bounds.min.x + bounds.max.x) / 2,
+                                      -(bounds.min.y + bounds.max.y) / 2,
+                                      -(bounds.min.z + bounds.max.z) / 2)
+        pivot.addChildNode(content)
+        needsDisplay = true
     }
 
     private func addLight(to scene: SCNScene, type: SCNLight.LightType, position: SCNVector3, color: NSColor, intensity: CGFloat) {

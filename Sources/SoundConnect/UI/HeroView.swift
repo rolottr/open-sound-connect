@@ -9,8 +9,8 @@ struct HeroView: View {
     var body: some View {
         let state = controller.state
         VStack(spacing: compact ? 10 : 18) {
-            if !compact, (state.modelName ?? controller.selectedName).uppercased().contains("WH-1000XM4") {
-                HeadphoneModelView()
+            if !compact, let resource = ProductArtwork.resourceName(for: state.modelName ?? controller.selectedName) {
+                HeadphoneModelView(resourceName: resource)
                     .frame(width: 400)
             } else {
                 ProductImage(modelName: state.modelName ?? controller.selectedName, colorCode: state.colorCode)
@@ -81,7 +81,26 @@ struct BatteryLabel: View {
     }
 }
 
-/// Rendered XM4 thumbnail, with a generic illustration for other models.
+/// Blender-authored models bundled for the headphones that have one (see `artwork/`).
+enum ProductArtwork {
+    static let models = ["WH-1000XM4", "WH-1000XM5", "WH-1000XM6"]
+
+    /// The resource base name for a reported model or Bluetooth name, e.g. "WH-1000XM5".
+    static func resourceName(for modelName: String) -> String? {
+        let name = modelName.uppercased()
+        return models.first { name.contains($0) }
+    }
+
+    static func thumbnail(for modelName: String) -> NSImage? {
+        resourceName(for: modelName).flatMap { thumbnails[$0] }
+    }
+
+    private static let thumbnails: [String: NSImage] = Dictionary(uniqueKeysWithValues: models.compactMap { name in
+        Bundle.main.url(forResource: name, withExtension: "png").flatMap(NSImage.init(contentsOf:)).map { (name, $0) }
+    })
+}
+
+/// Rendered thumbnail for models with bundled artwork, with a generic illustration for the rest.
 struct ProductImage: View {
     let modelName: String
     let colorCode: UInt8?
@@ -102,15 +121,9 @@ struct ProductImage: View {
         .accessibilityLabel("\(modelName) product image")
     }
 
-
-    private static let renderedXM4: NSImage? = {
-        guard let url = Bundle.main.url(forResource: "WH-1000XM4", withExtension: "png") else { return nil }
-        return NSImage(contentsOf: url)
-    }()
-
     @ViewBuilder
     private func productArt(size: CGSize) -> some View {
-        if modelName.uppercased().contains("WH-1000XM4"), let image = Self.renderedXM4 {
+        if let image = ProductArtwork.thumbnail(for: modelName) {
             Image(nsImage: image).resizable().interpolation(.high).scaledToFit()
         } else {
             DrawnHeadphones(tint: Self.tint(for: colorCode))
