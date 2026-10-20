@@ -65,7 +65,7 @@ Open Sound Connect checks this repository's GitHub Releases once a day. When a n
 
 ### About downloaded builds
 
-Current builds are **ad-hoc signed**, not Developer ID signed or notarized. macOS may block a downloaded copy. Building locally is the supported starting point if you cannot open a downloaded build. The project does not include a signing certificate or require you to disable system security settings.
+Builds on this repository's [Releases](https://github.com/rolottr/open-sound-connect/releases) page are **Developer ID signed and notarized by Apple** (from 1.3.0), so they open normally after you download them. Builds you make yourself and the artifacts of the [Actions](https://github.com/rolottr/open-sound-connect/actions/workflows/build.yml) workflow are ad-hoc signed and not notarized; macOS may block a downloaded copy of those, so use a release or build locally. The project does not include a signing certificate or require you to disable system security settings.
 
 Use `arm64` builds on Apple Silicon and `x86_64` builds on Intel Macs. These are separate builds, not a universal binary.
 
@@ -102,7 +102,7 @@ cd open-sound-connect
 open "build/Open Sound Connect.app"
 ```
 
-The build script compiles the app, icon generator and vendored MediaRemote Adapter, assembles the app bundle, includes the licenses, and applies an ad-hoc signature. No third-party Swift package dependencies, extra package manager or build-time downloads are needed.
+The build script compiles the app, icon generator and vendored MediaRemote Adapter, assembles the app bundle, includes the licenses, and applies an ad-hoc signature. `ARCH=x86_64` builds for the other architecture. No third-party Swift package dependencies, extra package manager or build-time downloads are needed.
 
 Run the playback and volume regression checks with `./scripts/test.sh`.
 
@@ -162,7 +162,16 @@ On an Intel Mac the suffix is `x86_64`. To verify an Apple Silicon archive, run 
 shasum -a 256 -c Sound-Connect-macos-arm64.zip.sha256
 ```
 
-The [GitHub Actions workflow](.github/workflows/build.yml) builds and uploads ZIPs and checksums for both architectures on pushes, pull requests and manual dispatch. It does not automatically publish a GitHub Release.
+Release builds are signed with a Developer ID certificate, with the Hardened Runtime and a secure timestamp, then notarized and stapled before they are zipped. This needs the certificate in your keychain and a [notarytool keychain profile](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow):
+
+```sh
+SIGN_IDENTITY="Developer ID Application: …" NOTARY_PROFILE=<profile> ./scripts/package.sh
+SIGN_IDENTITY="Developer ID Application: …" NOTARY_PROFILE=<profile> ARCH=x86_64 ./scripts/package.sh
+```
+
+The archive is only created once Apple accepts the submission and the stapled app passes Gatekeeper; the notary log is saved next to it in `build/`.
+
+The [GitHub Actions workflow](.github/workflows/build.yml) builds, tests and uploads ad-hoc signed ZIPs and checksums for both architectures on pushes, pull requests and manual dispatch. It does not sign, notarize or publish a GitHub Release.
 
 ## Keyboard shortcuts
 

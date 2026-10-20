@@ -2,10 +2,14 @@
 # Builds "Open Sound Connect.app" with SwiftPM.
 #   scripts/build.sh            release build into build/Open Sound Connect.app
 #   CONFIG=debug scripts/build.sh
+#   ARCH=x86_64 scripts/build.sh     another architecture (default: this Mac's)
+#   SIGN_IDENTITY="Developer ID Application: …" scripts/build.sh
+#                                    Developer ID signature for releases (default: ad-hoc)
 set -euo pipefail
 
 ROOT=${0:A:h:h}
 CONFIG=${CONFIG:-release}
+ARCH=${ARCH:-$(uname -m)}
 case "$CONFIG" in
   release|debug) ;;
   *) echo "CONFIG must be release or debug" >&2; exit 2 ;;
@@ -24,12 +28,14 @@ if [[ -z "${SDKROOT:-}" && "$(xcode-select -p)" == /Library/Developer/CommandLin
   done
 fi
 export SDKROOT=${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}
-echo "==> swift build ($CONFIG) with SDK ${SDKROOT:-default}"
-swift build -c "$CONFIG" --product SoundConnect
+echo "==> swift build ($CONFIG, $ARCH) with SDK ${SDKROOT:-default}"
+swift build -c "$CONFIG" --arch "$ARCH" --product SoundConnect
+BIN=$(swift build -c "$CONFIG" --arch "$ARCH" --show-bin-path)
+# The icon renderer runs here during the build, so it is always built for this Mac.
 swift build -c "$CONFIG" --product SoundConnectArtwork
-BIN=$(swift build -c "$CONFIG" --show-bin-path)
+TOOLS=$(swift build -c "$CONFIG" --show-bin-path)
 echo "==> Local Now Playing helper"
-"$ROOT/scripts/build-mediaremote.sh"
+ARCH="$ARCH" "$ROOT/scripts/build-mediaremote.sh"
 
 echo "==> Assembling bundle"
 rm -rf "$APP"
@@ -47,14 +53,33 @@ cp "$ROOT/Vendor/MediaRemoteAdapter/bin/mediaremote-adapter.pl" "$APP/Contents/R
 cp "$ROOT/Vendor/MediaRemoteAdapter/LICENSE" "$APP/Contents/Resources/MediaRemoteAdapter-LICENSE"
 
 echo "==> App icon"
-"$BIN/SoundConnectArtwork" icon "$ROOT/Resources/Artwork/AppIconSource.png" "$ROOT/build/AppIcon.iconset"
+"$TOOLS/SoundConnectArtwork" icon "$ROOT/Resources/Artwork/AppIconSource.png" "$ROOT/build/AppIcon.iconset"
 iconutil -c icns "$ROOT/build/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
 
-echo "==> Ad-hoc signing (identifier-based designated requirement keeps the Bluetooth grant across rebuilds)"
-codesign --force --sign - --identifier "$BUNDLE_ID" \
-  --requirements "=designated => identifier \"$BUNDLE_ID\"" \
-  "$APP"
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+  # Inside-out, without --deep: nested code first, then the app that seals it.
+  # The default designated requirement (bundle id + team) is stable across updates and also satisfies the
+  # identifier-only requirement of the ad-hoc builds, so the Bluetooth grant carries over.
+  # No entitlements: the app isn't sandboxed, loads no third-party code (the Now Playing framework is loaded
+  # by /usr/bin/perl in its own process), and Bluetooth needs no Hardened Runtime exception.
+  echo "==> Signing with $SIGN_IDENTITY (Hardened Runtime, secure timestamp)"
+  SIGN=(codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp)
+  MAIN="$APP/Contents/MacOS/Open Sound Connect"
+  ADAPTER="$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
+  "${SIGN[@]}" "$ADAPTER/Versions/A"
+  # Any other Mach-O in the bundle must carry the same signature.
+  find "$APP" -type f -perm +111 ! -path "$MAIN" ! -path "$ADAPTER/*" -print0 |
+    while IFS= read -r -d '' file; do
+      if file -b "$file" | grep -q Mach-O; then "${SIGN[@]}" "$file"; fi
+    done
+  "${SIGN[@]}" --identifier "$BUNDLE_ID" "$APP"
+else
+  echo "==> Ad-hoc signing (identifier-based designated requirement keeps the Bluetooth grant across rebuilds)"
+  codesign --force --sign - --identifier "$BUNDLE_ID" \
+    --requirements "=designated => identifier \"$BUNDLE_ID\"" \
+    "$APP"
+fi
 codesign --verify --strict "$APP"
 codesign -d -r- "$APP" 2>&1 | grep designated || true
 
-echo "==> Built $APP ($BUILD_NUMBER)"
+echo "==> Built $APP ($ARCH, $BUILD_NUMBER)"
