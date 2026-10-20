@@ -1,6 +1,6 @@
 #!/bin/zsh
-# Builds "Sound Connect.app" with SwiftPM.
-#   scripts/build.sh            release build into build/Sound Connect.app
+# Builds "Open Sound Connect.app" with SwiftPM.
+#   scripts/build.sh            release build into build/Open Sound Connect.app
 #   CONFIG=debug scripts/build.sh
 set -euo pipefail
 
@@ -11,7 +11,7 @@ case "$CONFIG" in
   *) echo "CONFIG must be release or debug" >&2; exit 2 ;;
 esac
 BUNDLE_ID=dev.rolottr.SoundConnect
-APP="$ROOT/build/Sound Connect.app"
+APP="$ROOT/build/Open Sound Connect.app"
 cd "$ROOT"
 
 # Use the selected toolchain without changing global developer settings.
@@ -34,7 +34,7 @@ echo "==> Local Now Playing helper"
 echo "==> Assembling bundle"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN/SoundConnect" "$APP/Contents/MacOS/Sound Connect"
+cp "$BIN/SoundConnect" "$APP/Contents/MacOS/Open Sound Connect"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 BUILD_NUMBER=$(date +%Y%m%d%H%M)
 plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP/Contents/Info.plist"

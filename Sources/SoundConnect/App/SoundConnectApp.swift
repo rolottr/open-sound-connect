@@ -6,7 +6,7 @@ struct SoundConnectApp: App {
     @AppStorage("showMenuBarExtra") private var showMenuBar = true
 
     var body: some Scene {
-        Window("Sound Connect", id: "main") {
+        Window("Open Sound Connect", id: "main") {
             RootView()
                 .environment(appDelegate.controller)
                 .environment(appDelegate.scenes)
@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func sizeMainWindowOnFirstLaunch() {
         guard UserDefaults.standard.string(forKey: "NSWindow Frame main") == nil else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            guard let window = NSApp.windows.first(where: { $0.title == "Sound Connect" && $0.isVisible }),
+            guard let window = NSApp.windows.first(where: { $0.title == "Open Sound Connect" && $0.isVisible }),
                   let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
             let size = NSSize(width: min(1160, visible.width - 80), height: min(820, visible.height - 60))
             let origin = NSPoint(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2)

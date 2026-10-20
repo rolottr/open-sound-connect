@@ -2,7 +2,7 @@ import AppKit
 import SceneKit
 import SwiftUI
 
-/// Developer aid: `open "Sound Connect.app" --args --snapshot-dir /tmp/shots [--snapshot-quit]`.
+/// Developer aid: `open "Open Sound Connect.app" --args --snapshot-dir /tmp/shots [--snapshot-quit]`.
 /// Waits for the headphones (up to 30 s), then renders the app's *own* main window for every page into PNGs via
 /// `cacheDisplay` (no screen-recording permission, no input injection). Read-only: it never changes settings.
 @MainActor
@@ -22,7 +22,7 @@ enum SnapshotRunner {
             try? await Task.sleep(for: .seconds(1.5))
             if let sizeIndex = arguments.firstIndex(of: "--snapshot-size"), sizeIndex + 1 < arguments.count {
                 let parts = arguments[sizeIndex + 1].split(separator: "x").compactMap { Double($0) }
-                if parts.count == 2, let window = NSApp.windows.first(where: { $0.title == "Sound Connect" && $0.isVisible }) {
+                if parts.count == 2, let window = NSApp.windows.first(where: { $0.title == "Open Sound Connect" && $0.isVisible }) {
                     var frame = window.frame
                     frame.size = NSSize(width: parts[0], height: parts[1])
                     window.setFrame(frame, display: true)
@@ -68,7 +68,7 @@ enum SnapshotRunner {
     }
 
     static func capture(to url: URL) {
-        guard let window = NSApp.windows.first(where: { $0.isVisible && $0.title == "Sound Connect" && $0.contentView != nil }),
+        guard let window = NSApp.windows.first(where: { $0.isVisible && $0.title == "Open Sound Connect" && $0.contentView != nil }),
               let view = window.contentView,
               let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
