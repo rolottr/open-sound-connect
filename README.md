@@ -35,7 +35,7 @@ The app communicates directly with the headphones using their Bluetooth control 
 | **Scenes** | Combine supported settings into named presets, then apply them manually or through connection, schedule and app-activation triggers. |
 | **Menu bar** | Check battery and codec, switch noise modes, choose EQ, toggle DSEE and Speak-to-Chat, and apply scenes. |
 | **Activity** | Inspect reported capabilities, setting-change results and protocol traffic; copy or export diagnostics. |
-| **Now Playing** | Show the Mac's current title, artist, album and artwork, with playback controls for that player. Headphone metadata is used when macOS metadata is unavailable. |
+| **Now Playing** | Show the title, artist and album the headphones report, with play/pause and track controls sent through the headphones. |
 | **Mac integration** | Keyboard shortcuts, automatic reconnection, an optional menu bar item and an Open at Login setting. |
 
 Feature availability depends on the headphone model and firmware. Implemented controls and hardware-verified controls are distinguished in [Compatibility](#compatibility).
@@ -102,7 +102,7 @@ cd open-sound-connect
 open "build/Open Sound Connect.app"
 ```
 
-The build script compiles the app, icon generator and vendored MediaRemote Adapter, assembles the app bundle, includes the licenses, and applies an ad-hoc signature. `ARCH=x86_64` builds for the other architecture. No third-party Swift package dependencies, extra package manager or build-time downloads are needed.
+The build script compiles the app and icon generator, assembles the app bundle, includes the licenses, and applies an ad-hoc signature. `ARCH=x86_64` builds for the other architecture. No third-party Swift package dependencies, extra package manager or build-time downloads are needed.
 
 Run the playback and volume regression checks with `./scripts/test.sh`.
 
@@ -190,7 +190,7 @@ The **Headphones** and **Scenes** menus expose additional actions and their shor
 
 The app communicates directly with the headset over local Bluetooth. It has no account system, analytics or cloud backend. Its only network request is the update check: once a day it reads this repository's latest public release from the GitHub API, sending nothing about you or your headphones. Turn it off under **Settings → Updates → Check Automatically**.
 
-Now Playing reads media metadata and artwork locally from macOS using the bundled [MediaRemote Adapter](Vendor/MediaRemoteAdapter/UPSTREAM.md). It does not fetch cover images from the internet or store listening history. This integration uses a private macOS interface; if unavailable, the app falls back to the metadata supplied by the headphones. Replay mode never starts the macOS media helper.
+Now Playing shows the track information the headphones report over the same Bluetooth connection. It does not read media information from macOS or store listening history.
 
 - **Scenes:** `~/Library/Application Support/Sound Connect/scenes.json`.
 - **Preferences and saved EQ curves:** local macOS user defaults.
@@ -235,8 +235,6 @@ Replay runs the recorded frames through the app's parser and displays a persiste
 ## Credits and license
 
 Created by [rolottr](https://github.com/rolottr). Released under the [MIT License](LICENSE).
-
-The bundled [MediaRemote Adapter](https://github.com/ungive/mediaremote-adapter) is by Jonas van den Berg and contributors, under its [BSD-3-Clause license](Vendor/MediaRemoteAdapter/LICENSE). Its pinned source is in `Vendor/MediaRemoteAdapter`, and its license is included in the app bundle.
 
 Protocol research benefited from [SonyHeadphonesClient](https://github.com/mos9527/SonyHeadphonesClient), [Plutoberth’s SonyHeadphonesClient](https://github.com/Plutoberth/SonyHeadphonesClient) and [SonyBridge](https://github.com/AmitRajput-Dev/SonyBridge). See [artwork attribution](Resources/Artwork/ATTRIBUTION.md) for the bundled icon. The WH-1000XM4, WH-1000XM5 and WH-1000XM6 models and thumbnails are original Blender artwork; other models use a generic SwiftUI illustration. The editable scenes and generators are in [`artwork/`](artwork/). Sony product names and marks identify the depicted device and belong to their respective owners.
 

@@ -34,8 +34,6 @@ BIN=$(swift build -c "$CONFIG" --arch "$ARCH" --show-bin-path)
 # The icon renderer runs here during the build, so it is always built for this Mac.
 swift build -c "$CONFIG" --product SoundConnectArtwork
 TOOLS=$(swift build -c "$CONFIG" --show-bin-path)
-echo "==> Local Now Playing helper"
-ARCH="$ARCH" "$ROOT/scripts/build-mediaremote.sh"
 
 echo "==> Assembling bundle"
 rm -rf "$APP"
@@ -47,10 +45,6 @@ plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP/Contents/Info.plis
 cp "$ROOT/Resources/Artwork/ATTRIBUTION.md" "$APP/Contents/Resources/ArtworkAttribution.md"
 cp "$ROOT"/Resources/Models/*.usdz "$ROOT"/Resources/Models/*.png "$APP/Contents/Resources/"
 cp "$ROOT/LICENSE" "$APP/Contents/Resources/LICENSE"
-mkdir -p "$APP/Contents/Frameworks"
-ditto "$ROOT/build/MediaRemoteAdapter.framework" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
-cp "$ROOT/Vendor/MediaRemoteAdapter/bin/mediaremote-adapter.pl" "$APP/Contents/Resources/"
-cp "$ROOT/Vendor/MediaRemoteAdapter/LICENSE" "$APP/Contents/Resources/MediaRemoteAdapter-LICENSE"
 
 echo "==> App icon"
 "$TOOLS/SoundConnectArtwork" icon "$ROOT/Resources/Artwork/AppIconSource.png" "$ROOT/build/AppIcon.iconset"
@@ -60,15 +54,13 @@ if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   # Inside-out, without --deep: nested code first, then the app that seals it.
   # The default designated requirement (bundle id + team) is stable across updates and also satisfies the
   # identifier-only requirement of the ad-hoc builds, so the Bluetooth grant carries over.
-  # No entitlements: the app isn't sandboxed, loads no third-party code (the Now Playing framework is loaded
-  # by /usr/bin/perl in its own process), and Bluetooth needs no Hardened Runtime exception.
+  # No entitlements: the app isn't sandboxed, loads no third-party code, and Bluetooth needs no Hardened
+  # Runtime exception.
   echo "==> Signing with $SIGN_IDENTITY (Hardened Runtime, secure timestamp)"
   SIGN=(codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp)
   MAIN="$APP/Contents/MacOS/Open Sound Connect"
-  ADAPTER="$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
-  "${SIGN[@]}" "$ADAPTER/Versions/A"
   # Any other Mach-O in the bundle must carry the same signature.
-  find "$APP" -type f -perm +111 ! -path "$MAIN" ! -path "$ADAPTER/*" -print0 |
+  find "$APP" -type f -perm +111 ! -path "$MAIN" -print0 |
     while IFS= read -r -d '' file; do
       if file -b "$file" | grep -q Mach-O; then "${SIGN[@]}" "$file"; fi
     done

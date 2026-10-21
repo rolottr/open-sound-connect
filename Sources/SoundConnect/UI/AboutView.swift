@@ -14,12 +14,10 @@ struct AboutView: View {
                     AboutLinksCard()
                     Card("Privacy", symbol: "lock") {
                         AboutText("Open Sound Connect talks to your headphones directly over Bluetooth on this Mac. There is no account, analytics or cloud service.",
-                                  "Its only network request is the optional daily update check, which reads this project's latest release on GitHub and sends nothing about you or your headphones.",
-                                  "Now Playing reads track details and artwork locally from macOS.")
+                                  "Its only network request is the optional daily update check, which reads this project's latest release on GitHub and sends nothing about you or your headphones.")
                     }
                     Card("Credits", symbol: "heart") {
-                        AboutText("Now Playing uses the bundled MediaRemote Adapter, under the BSD-3-Clause license.",
-                                  "Protocol research benefited from the open-source SonyHeadphonesClient and SonyBridge projects.",
+                        AboutText("Protocol research benefited from the open-source SonyHeadphonesClient and SonyBridge projects.",
                                   "The headphone models are original Blender artwork.",
                                   "Independent, community-developed software. Not affiliated with or endorsed by Sony. Sony names and trademarks belong to their respective owners.")
                     }

@@ -57,7 +57,6 @@ struct Toast: Identifiable, Equatable {
 final class HeadphoneController {
     let bluetooth = BluetoothAccess()
     let state = DeviceState()
-    let systemNowPlaying = SystemNowPlaying()
 
     private(set) var phase: ConnectionPhase = .starting
     private(set) var knownHeadphones: [KnownHeadphones] = []

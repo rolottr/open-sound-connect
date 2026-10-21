@@ -327,22 +327,16 @@ struct NowPlayingCard: View {
 
     var body: some View {
         let playing = controller.state.nowPlaying
-        let system = controller.systemNowPlaying
-        let track = system.item
-        let isPlaying = track?.playing ?? (playing.status == .playing)
-        let title = track?.title ?? playing.title
-        let artist = track != nil ? track?.artist : playing.artist
-        let album = track != nil ? track?.album : playing.album
+        let isPlaying = playing.status == .playing
+        let title = playing.title
+        let artist = playing.artist
+        let album = playing.album
         Card("Now Playing", symbol: "music.note") {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(LinearGradient(colors: [Theme.accent.opacity(0.35), Theme.control], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    if let artwork = system.artwork, track != nil {
-                        Image(nsImage: artwork).resizable().scaledToFill()
-                    } else {
-                        Image(systemName: isPlaying ? "waveform" : "music.note").foregroundStyle(Theme.text.opacity(0.85))
-                    }
+                    Image(systemName: isPlaying ? "waveform" : "music.note").foregroundStyle(Theme.text.opacity(0.85))
                 }
                 .frame(width: 46, height: 46)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -361,7 +355,7 @@ struct NowPlayingCard: View {
                     }
                     TransportButton(symbol: "forward.fill", label: "Next track") { playback(.next) }
                 }
-                .disabled(controller.isReplay || (track == nil ? !controller.canWrite : system.commandPending))
+                .disabled(controller.isReplay || !controller.canWrite)
             }
             if let volume = playing.volume {
                 HStack(spacing: 10) {
@@ -376,17 +370,10 @@ struct NowPlayingCard: View {
         }
     }
 
+    /// Playback goes through the headphones, which forward it to the player on the connected device.
     private func playback(_ command: PlaybackCommand) {
         guard !controller.isReplay else { return }
-        if controller.systemNowPlaying.item != nil {
-            Task {
-                if await controller.systemNowPlaying.send(command) == false {
-                    controller.showToast(.warning, "The player did not accept the playback command.")
-                }
-            }
-        } else {
-            controller.apply(.playback(command))
-        }
+        controller.apply(.playback(command))
     }
 }
 
