@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Sandbox: the app keeps to its container except where the keys below allow more. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- IOBluetooth RFCOMM to the headphones and the CoreBluetooth authorization/power check. -->
+	<key>com.apple.security.device.bluetooth</key>
+	<true/>
+	<!-- The daily update check against the GitHub Releases API. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- Export Log (save panel) and choosing an app for a scene trigger (open panel). -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+</dict>
+</plist>

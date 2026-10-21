@@ -181,8 +181,10 @@ struct SoundConnectCommands: Commands {
         }
 
         CommandGroup(after: .appInfo) {
-            Button("Check for Updates…") { Task { await updates.checkAndReport() } }
-                .disabled(updates.state == .checking)
+            if UpdateChecker.isEnabled {
+                Button("Check for Updates…") { Task { await updates.checkAndReport() } }
+                    .disabled(updates.state == .checking)
+            }
         }
 
         CommandGroup(after: .sidebar) {

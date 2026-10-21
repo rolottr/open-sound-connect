@@ -69,6 +69,8 @@ Builds on this repository's [Releases](https://github.com/rolottr/open-sound-con
 
 Use `arm64` builds on Apple Silicon and `x86_64` builds on Intel Macs. These are separate builds, not a universal binary.
 
+The app runs in the macOS [App Sandbox](https://developer.apple.com/documentation/xcode/configuring-the-macos-app-sandbox). It may use Bluetooth, files you choose in Open and Save panels and, for the update check, outgoing network connections; nothing else. The first time a sandboxed version opens, macOS moves the scenes, preferences and reports of earlier versions into the app's container.
+
 ## Compatibility
 
 | Headphones | Status |
@@ -171,7 +173,19 @@ SIGN_IDENTITY="Developer ID Application: …" NOTARY_PROFILE=<profile> ARCH=x86_
 
 The archive is only created once Apple accepts the submission and the stapled app passes Gatekeeper; the notary log is saved next to it in `build/`.
 
-The [GitHub Actions workflow](.github/workflows/build.yml) builds, tests and uploads ad-hoc signed ZIPs and checksums for both architectures on pushes, pull requests and manual dispatch. It does not sign, notarize or publish a GitHub Release.
+The [GitHub Actions workflow](.github/workflows/build.yml) builds, tests and uploads ad-hoc signed ZIPs and checksums for both architectures on pushes, pull requests and manual dispatch, and checks that the Mac App Store variant builds. It does not sign, notarize or publish a GitHub Release.
+
+### Mac App Store build
+
+```sh
+PROVISIONING_PROFILE=<Mac App Store profile> ./scripts/package-appstore.sh
+```
+
+This builds a universal app without the update check (the App Store handles updates), embeds the profile, signs it with the Apple Distribution certificate and wraps it in an installer package signed with the Mac Installer Distribution (3rd Party Mac Developer Installer) certificate, in `build/Open-Sound-Connect-<version>-AppStore.pkg`. With `UPLOAD=1 ASC_KEY_ID=<key id> ASC_ISSUER_ID=<issuer id>` it also validates and uploads the package with Xcode's `altool`, using the App Store Connect API key stored in `~/.appstoreconnect/private_keys/`.
+
+### Developer builds and the sandbox
+
+Every build is sandboxed, like the releases, and moves earlier data into its container the first time it runs. A sandboxed copy can only read and write files in its container, so build with `SANDBOX=0` to probe, replay or snapshot with files elsewhere. Builds signed by different certificates (ad-hoc, Developer ID, App Store) share the container under the same bundle ID, and macOS asks before letting a differently signed copy open it; build with `SIGN_IDENTITY` to work with the same container as your installed release.
 
 ## Keyboard shortcuts
 
@@ -192,7 +206,7 @@ The app communicates directly with the headset over local Bluetooth. It has no a
 
 Now Playing shows the track information the headphones report over the same Bluetooth connection. It does not read media information from macOS or store listening history.
 
-- **Scenes:** `~/Library/Application Support/Sound Connect/scenes.json`.
+- **Scenes:** `~/Library/Containers/dev.rolottr.SoundConnect/Data/Library/Application Support/Sound Connect/scenes.json` (before the sandbox: `~/Library/Application Support/Sound Connect/scenes.json`).
 - **Preferences and saved EQ curves:** local macOS user defaults.
 - **Diagnostic reports:** written locally when you request or export them.
 
@@ -217,6 +231,7 @@ Volume can be rounded by one step during Bluetooth synchronization. The slider f
 ### Collect a read-only hardware report
 
 ```sh
+SANDBOX=0 ./scripts/build.sh
 open -n -W "build/Open Sound Connect.app" --args \
   --probe --out "$HOME/Desktop/sound-connect-probe.txt"
 ```
@@ -230,7 +245,7 @@ open -n "build/Open Sound Connect.app" --args \
   --replay "$HOME/Desktop/sound-connect-probe.txt"
 ```
 
-Replay runs the recorded frames through the app's parser and displays a persistent **READ-ONLY REPLAY — NOT LIVE** banner. Headphone writes and scene automation are disabled. Local scenes and preferences remain editable and are saved normally.
+Like the probe, replay needs a `SANDBOX=0` build to read a report outside the app's container. It runs the recorded frames through the app's parser and displays a persistent **READ-ONLY REPLAY — NOT LIVE** banner. Headphone writes and scene automation are disabled. Local scenes and preferences remain editable and are saved normally.
 
 ## Credits and license
 

@@ -14,7 +14,9 @@ struct AboutView: View {
                     AboutLinksCard()
                     Card("Privacy", symbol: "lock") {
                         AboutText("Open Sound Connect talks to your headphones directly over Bluetooth on this Mac. There is no account, analytics or cloud service.",
-                                  "Its only network request is the optional daily update check, which reads this project's latest release on GitHub and sends nothing about you or your headphones.")
+                                  UpdateChecker.isEnabled
+                                      ? "Its only network request is the optional daily update check, which reads this project's latest release on GitHub and sends nothing about you or your headphones."
+                                      : "It makes no network requests.")
                     }
                     Card("Credits", symbol: "heart") {
                         AboutText("Protocol research benefited from the open-source SonyHeadphonesClient and SonyBridge projects.",
@@ -115,8 +117,11 @@ private struct AboutLinksCard: View {
         Card("Links", symbol: "link") {
             VStack(alignment: .leading, spacing: 10) {
                 link("Project on GitHub", symbol: "chevron.left.forwardslash.chevron.right", AppInfo.project)
-                link("Release Notes", symbol: "doc.text", AppInfo.project.appendingPathComponent("releases/tag/v\(AppInfo.version)"))
-                link("All Releases", symbol: "shippingbox", AppInfo.project.appendingPathComponent("releases"))
+                // App Store builds don't point to the GitHub downloads.
+                if UpdateChecker.isEnabled {
+                    link("Release Notes", symbol: "doc.text", AppInfo.project.appendingPathComponent("releases/tag/v\(AppInfo.version)"))
+                    link("All Releases", symbol: "shippingbox", AppInfo.project.appendingPathComponent("releases"))
+                }
                 link("Report an Issue", symbol: "exclamationmark.bubble", AppInfo.project.appendingPathComponent("issues/new"))
                 link("License", symbol: "checkmark.shield", AppInfo.project.appendingPathComponent("blob/main/LICENSE"))
             }

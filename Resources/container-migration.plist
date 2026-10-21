@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Read by macOS once, when it creates the App Sandbox container: moves the data of earlier,
+	     unsandboxed versions (scenes, preferences and saved EQ curves, diagnostic reports) inside. -->
+	<key>Move</key>
+	<array>
+		<string>${ApplicationSupport}/Sound Connect</string>
+		<string>${Library}/Preferences/dev.rolottr.SoundConnect.plist</string>
+		<string>${Library}/Logs/Sound Connect</string>
+	</array>
+</dict>
+</plist>

@@ -14,7 +14,7 @@ struct DeviceSettingsView: View {
                 PageHeader(title: "Settings")
                 AdaptiveColumns {
                     AppPreferencesCard()
-                    UpdatesCard()
+                    if UpdateChecker.isEnabled { UpdatesCard() }
                     Card("Headphones", symbol: "headphones") {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("Connect your headphones to change their settings.")
@@ -51,7 +51,7 @@ struct DeviceSettingsView: View {
                     if caps.ncOptimizer { OptimizerCard() }
                     DeviceInfoCard()
                     AppPreferencesCard()
-                    UpdatesCard()
+                    if UpdateChecker.isEnabled { UpdatesCard() }
                 }
             }
             .padding(Theme.pagePadding)
