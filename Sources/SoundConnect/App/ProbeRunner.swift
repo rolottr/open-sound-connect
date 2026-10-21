@@ -1,8 +1,8 @@
 import AppKit
 import Foundation
 
-/// Headless hardware diagnostics: `Sound Connect.app/Contents/MacOS/Sound Connect --probe [--exercise] [--out FILE]`.
-/// Launch it through LaunchServices (`open -n -W "Sound Connect.app" --args --probe …`) so the app, not the
+/// Headless hardware diagnostics: `Open Sound Connect.app/Contents/MacOS/Open Sound Connect --probe [--exercise] [--out FILE]`.
+/// Launch it through LaunchServices (`open -n -W "Open Sound Connect.app" --args --probe …`) so the app, not the
 /// terminal, is the Bluetooth-responsible process.
 ///
 /// * `--probe` connects, initializes, and writes identity, capabilities, every reported value and the full
@@ -31,7 +31,7 @@ final class ProbeRunner {
     }
 
     func run() async -> Int32 {
-        say("Sound Connect probe \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "dev") — \(Date())")
+        say("Open Sound Connect probe \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "dev") — \(Date())")
         say("Mode: \(exercise ? "read + reversible write/readback/restore" : "read-only")")
         controller.start()
 

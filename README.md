@@ -1,9 +1,9 @@
 # Open Sound Connect
 
-![Sound Connect walkthrough showing the interactive headphone model, sound controls, scenes, settings and activity](.github/assets/showcase.webp)
+![Open Sound Connect walkthrough showing the interactive headphone model, sound controls, scenes, settings and activity](.github/assets/showcase.webp)
 
 <p align="center">
-  <img src=".github/assets/menubar.webp" width="640" alt="Animated walkthrough of the Sound Connect menu bar icon and dropdown, with battery, noise control, equalizer, DSEE, Speak-to-Chat and scenes">
+  <img src=".github/assets/menubar.webp" width="640" alt="Animated walkthrough of the Open Sound Connect menu bar icon and dropdown, with battery, noise control, equalizer, DSEE, Speak-to-Chat and scenes">
 </p>
 
 **Your Sony headphones, at home on your Mac.**
@@ -46,26 +46,26 @@ Feature availability depends on the headphone model and firmware. Implemented co
 
 - **macOS 15 or later**.
 - Compatible Sony headphones paired with your Mac.
-- Bluetooth enabled and permission granted to Sound Connect.
+- Bluetooth enabled and permission granted to Open Sound Connect.
 - **Swift 6 or later** through Xcode or the Xcode Command Line Tools if building from source.
 
 ### Install and connect
 
 1. Build the app using the instructions below, or obtain a matching architecture build from this repository's [Releases](https://github.com/rolottr/open-sound-connect/releases) or [Actions](https://github.com/rolottr/open-sound-connect/actions/workflows/build.yml).
-2. Place **Sound Connect.app** in your Applications folder and open it.
+2. Place **Open Sound Connect.app** in your Applications folder and open it.
 3. Pair and connect your headphones in **System Settings → Bluetooth**.
-4. Allow Sound Connect to access Bluetooth when macOS asks.
+4. Allow Open Sound Connect to access Bluetooth when macOS asks.
 5. Open **My Device** to see the connected headset and its available controls.
 
-The app bundle is named **Sound Connect.app**. Closing the main window keeps the app running in the menu bar, without a Dock icon, when its menu bar item is enabled; choose **Open Sound Connect** there to bring the window back, or **Quit** (⌘Q) to stop it and its automations.
+The app bundle is named **Open Sound Connect.app** (up to 1.2.1 it was **Sound Connect.app**; replace that copy, and your scenes, preferences and Bluetooth permission carry over). Closing the main window keeps the app running in the menu bar, without a Dock icon, when its menu bar item is enabled; choose **Settings** there to bring the window back, or **Quit** (⌘Q) to stop it and its automations.
 
-After your headphones first connect, Sound Connect offers once to open at login; the same switch is under **Settings → Sound Connect**. When opened at login it starts quietly in the menu bar. Launching with `--background` does the same for testing.
+After your headphones first connect, Open Sound Connect offers once to open at login; the same switch is under **Settings → Open Sound Connect**. When opened at login it starts quietly in the menu bar. Launching with `--background` does the same for testing.
 
-Sound Connect checks this repository's GitHub Releases once a day. When a newer version is out, **Download** opens that release's page on GitHub; pick the archive for your Mac (`arm64` for Apple Silicon, `x86_64` for Intel) and replace the app in your Applications folder with the new one. You can also choose **Sound Connect → Check for Updates…**.
+Open Sound Connect checks this repository's GitHub Releases once a day. When a newer version is out, **Download** opens that release's page on GitHub; pick the archive for your Mac (`arm64` for Apple Silicon, `x86_64` for Intel) and replace the app in your Applications folder with the new one. You can also choose **Open Sound Connect → Check for Updates…**.
 
 ### About downloaded builds
 
-Current builds are **ad-hoc signed**, not Developer ID signed or notarized. macOS may block a downloaded copy. Building locally is the supported starting point if you cannot open a downloaded build. The project does not include a signing certificate or require you to disable system security settings.
+Builds on this repository's [Releases](https://github.com/rolottr/open-sound-connect/releases) page are **Developer ID signed and notarized by Apple** (from 1.3.0), so they open normally after you download them. Builds you make yourself and the artifacts of the [Actions](https://github.com/rolottr/open-sound-connect/actions/workflows/build.yml) workflow are ad-hoc signed and not notarized; macOS may block a downloaded copy of those, so use a release or build locally. The project does not include a signing certificate or require you to disable system security settings.
 
 Use `arm64` builds on Apple Silicon and `x86_64` builds on Intel Macs. These are separate builds, not a universal binary.
 
@@ -99,10 +99,10 @@ Clone and build:
 git clone https://github.com/rolottr/open-sound-connect.git
 cd open-sound-connect
 ./scripts/build.sh
-open "build/Sound Connect.app"
+open "build/Open Sound Connect.app"
 ```
 
-The build script compiles the app, icon generator and vendored MediaRemote Adapter, assembles the app bundle, includes the licenses, and applies an ad-hoc signature. No third-party Swift package dependencies, extra package manager or build-time downloads are needed.
+The build script compiles the app, icon generator and vendored MediaRemote Adapter, assembles the app bundle, includes the licenses, and applies an ad-hoc signature. `ARCH=x86_64` builds for the other architecture. No third-party Swift package dependencies, extra package manager or build-time downloads are needed.
 
 Run the playback and volume regression checks with `./scripts/test.sh`.
 
@@ -151,7 +151,7 @@ This makes a release build and creates an architecture-specific ZIP and SHA-256 
 
 ```text
 build/
-├── Sound Connect.app
+├── Open Sound Connect.app
 ├── Sound-Connect-macos-arm64.zip
 └── Sound-Connect-macos-arm64.zip.sha256
 ```
@@ -162,7 +162,16 @@ On an Intel Mac the suffix is `x86_64`. To verify an Apple Silicon archive, run 
 shasum -a 256 -c Sound-Connect-macos-arm64.zip.sha256
 ```
 
-The [GitHub Actions workflow](.github/workflows/build.yml) builds and uploads ZIPs and checksums for both architectures on pushes, pull requests and manual dispatch. It does not automatically publish a GitHub Release.
+Release builds are signed with a Developer ID certificate, with the Hardened Runtime and a secure timestamp, then notarized and stapled before they are zipped. This needs the certificate in your keychain and a [notarytool keychain profile](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow):
+
+```sh
+SIGN_IDENTITY="Developer ID Application: …" NOTARY_PROFILE=<profile> ./scripts/package.sh
+SIGN_IDENTITY="Developer ID Application: …" NOTARY_PROFILE=<profile> ARCH=x86_64 ./scripts/package.sh
+```
+
+The archive is only created once Apple accepts the submission and the stapled app passes Gatekeeper; the notary log is saved next to it in `build/`.
+
+The [GitHub Actions workflow](.github/workflows/build.yml) builds, tests and uploads ad-hoc signed ZIPs and checksums for both architectures on pushes, pull requests and manual dispatch. It does not sign, notarize or publish a GitHub Release.
 
 ## Keyboard shortcuts
 
@@ -197,7 +206,7 @@ Make sure they are paired and connected in macOS Bluetooth settings, then use **
 
 ### Bluetooth access was denied
 
-Enable Sound Connect under **System Settings → Privacy & Security → Bluetooth**, then reopen the app. Launch the `.app` bundle through Finder or `open`, not its internal executable from a terminal.
+Enable Open Sound Connect under **System Settings → Privacy & Security → Bluetooth**, then reopen the app. Launch the `.app` bundle through Finder or `open`, not its internal executable from a terminal.
 
 ### A control is missing or a change fails
 
@@ -208,16 +217,16 @@ Volume can be rounded by one step during Bluetooth synchronization. The slider f
 ### Collect a read-only hardware report
 
 ```sh
-open -n -W "build/Sound Connect.app" --args \
+open -n -W "build/Open Sound Connect.app" --args \
   --probe --out "$HOME/Desktop/sound-connect-probe.txt"
 ```
 
-This reads device information and settings without exercising setting changes. Close other copies of Sound Connect before probing to avoid competing control connections.
+This reads device information and settings without exercising setting changes. Close other copies of Open Sound Connect before probing to avoid competing control connections.
 
 ### Replay a report without connecting to headphones
 
 ```sh
-open -n "build/Sound Connect.app" --args \
+open -n "build/Open Sound Connect.app" --args \
   --replay "$HOME/Desktop/sound-connect-probe.txt"
 ```
 

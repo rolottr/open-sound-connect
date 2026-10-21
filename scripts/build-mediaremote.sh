@@ -1,13 +1,15 @@
 #!/bin/zsh
 # Build the pinned, vendored MediaRemote helper; no download or CMake is required.
+#   ARCH=x86_64 scripts/build-mediaremote.sh     another architecture (default: this Mac's)
 set -euo pipefail
 ROOT=${0:A:h:h}
+ARCH=${ARCH:-$(uname -m)}
 SOURCE="$ROOT/Vendor/MediaRemoteAdapter"
 FRAMEWORK="$ROOT/build/MediaRemoteAdapter.framework"
 SDKROOT=${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}
 rm -rf "$FRAMEWORK"
 mkdir -p "$FRAMEWORK/Versions/A/Resources"
-xcrun clang -isysroot "$SDKROOT" -mmacosx-version-min=15.0 \
+xcrun clang -arch "$ARCH" -isysroot "$SDKROOT" -mmacosx-version-min=15.0 \
   -dynamiclib -fobjc-arc -fvisibility=default -O2 \
   -I"$SOURCE/include" -I"$SOURCE/src" \
   "$SOURCE"/src/adapter/*.m "$SOURCE"/src/private/*.m "$SOURCE"/src/utility/*.m \

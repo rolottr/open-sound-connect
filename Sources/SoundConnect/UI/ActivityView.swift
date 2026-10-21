@@ -187,7 +187,7 @@ struct TrafficCard: View {
     private func export() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.plainText]
-        panel.nameFieldStringValue = "Sound Connect log \(Date().formatted(.iso8601.year().month().day())).txt"
+        panel.nameFieldStringValue = "Open Sound Connect log \(Date().formatted(.iso8601.year().month().day())).txt"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try controller.trafficLog.write(to: url, atomically: true, encoding: .utf8)
@@ -257,11 +257,11 @@ struct ConnectionStateView: View {
     private var message: String {
         switch controller.phase {
         case .starting: "One moment…"
-        case .permissionNeeded: "Sound Connect needs Bluetooth access to talk to your headphones. Choose Allow in the system prompt."
-        case .permissionDenied: "Turn on Bluetooth for Sound Connect in System Settings › Privacy & Security › Bluetooth."
+        case .permissionNeeded: "Open Sound Connect needs Bluetooth access to talk to your headphones. Choose Allow in the system prompt."
+        case .permissionDenied: "Turn on Bluetooth for Open Sound Connect in System Settings › Privacy & Security › Bluetooth."
         case .bluetoothOff: "Turn Bluetooth on to control your headphones."
         case .noHeadphones: "Pair your headphones in System Settings › Bluetooth, then come back."
-        case .waiting: "Turn the headphones on, or connect them to this Mac. Sound Connect connects automatically."
+        case .waiting: "Turn the headphones on, or connect them to this Mac. Open Sound Connect connects automatically."
         case .connecting: "Connecting to your headphones…"
         case .initializing: "Reading settings from your headphones…"
         case .reconnecting: "The connection dropped. Reconnecting…"

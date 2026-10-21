@@ -239,7 +239,7 @@ struct ConnectivityCard: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("The headphones restart their Bluetooth connection to apply this. Sound Connect reconnects automatically.")
+            Text("The headphones restart their Bluetooth connection to apply this. Open Sound Connect reconnects automatically.")
         }
     }
 }
@@ -334,7 +334,7 @@ struct DeviceInfoCard: View {
                 if controller.canWrite {
                     Button("Refresh") { controller.refreshStatus() }
                     Button("Disconnect Controls") { controller.disconnect() }
-                        .help("Closes Sound Connect's control channel only; audio stays connected.")
+                        .help("Closes Open Sound Connect's control channel only; audio stays connected.")
                 } else if let address = controller.selectedAddress, !controller.isReplay {
                     Button("Connect") { controller.connect(address: address, initiate: true) }
                 }
@@ -370,12 +370,12 @@ struct AppPreferencesCard: View {
     @AppStorage("showMenuBarExtra") private var showMenuBar = true
 
     var body: some View {
-        Card("Sound Connect", symbol: "macwindow") {
+        Card("Open Sound Connect", symbol: "macwindow") {
             VStack(spacing: 14) {
                 SettingRow(symbol: "menubar.rectangle", title: "Show in Menu Bar",
                            detail: showMenuBar
-                               ? "Closing the window keeps Sound Connect running in the menu bar. Quit from there or with ⌘Q."
-                               : "Closing the window quits Sound Connect and stops scene automations.") {
+                               ? "Closing the window keeps Open Sound Connect running in the menu bar. Quit from there or with ⌘Q."
+                               : "Closing the window quits Open Sound Connect and stops scene automations.") {
                     Toggle("Show in Menu Bar", isOn: $showMenuBar).labelsHidden().toggleStyle(AccentToggleStyle())
                 }
                 RowDivider()
@@ -403,9 +403,9 @@ struct AppPreferencesCard: View {
         case .enabled:
             showMenuBar ? "Starts quietly in the menu bar when you log in." : "Opens when you log in."
         case .requiresApproval:
-            "Allow Sound Connect in System Settings → General → Login Items."
+            "Allow Open Sound Connect in System Settings → General → Login Items."
         case .unavailable:
-            "Not available for this copy. Move Sound Connect to the Applications folder and open it from there."
+            "Not available for this copy. Move Open Sound Connect to the Applications folder and open it from there."
         case .disabled:
             "Have your menu bar controls and scenes ready as soon as you log in."
         }

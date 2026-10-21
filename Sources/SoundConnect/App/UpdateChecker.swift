@@ -96,14 +96,14 @@ final class UpdateChecker {
         let alert = NSAlert()
         switch state {
         case .available(let release):
-            alert.messageText = "Sound Connect \(release.version) is available"
+            alert.messageText = "Open Sound Connect \(release.version) is available"
             alert.informativeText = "You have \(currentVersion). Download the new version from its GitHub release page, then replace the app in your Applications folder."
             alert.addButton(withTitle: "Download")
             alert.addButton(withTitle: "Later")
             if alert.runModal() == .alertFirstButtonReturn { download(release) }
         case .upToDate:
             alert.messageText = "You’re up to date"
-            alert.informativeText = "Sound Connect \(currentVersion) is the latest version."
+            alert.informativeText = "Open Sound Connect \(currentVersion) is the latest version."
             alert.runModal()
         case .failed(let message):
             alert.messageText = "Couldn’t check for updates"

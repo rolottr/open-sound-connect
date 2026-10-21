@@ -140,23 +140,29 @@ struct MenuBarView: View {
                 Button {
                     updates.download(release)
                 } label: {
-                    Label("Download Sound Connect \(release.version)", systemImage: "arrow.down.circle.fill")
+                    Label("Download Open Sound Connect \(release.version)", systemImage: "arrow.down.circle.fill")
                         .font(.system(size: 12, weight: .medium))
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(Theme.accent)
             }
             HStack {
-                Button("Open Sound Connect") {
+                Button {
                     // The app drops its Dock icon while only the menu bar item is open; bring it back with the window.
+                    navigation.page = .settings
                     NSApp.setActivationPolicy(.regular)
                     openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
+                } label: {
+                    Label(AppPage.settings.title, systemImage: AppPage.settings.symbol)
                 }
                 Spacer()
-                Button("Quit") { NSApp.terminate(nil) }
+                Button { NSApp.terminate(nil) } label: {
+                    Label("Quit", systemImage: "power")
+                }
             }
             .buttonStyle(.borderless)
+            .labelStyle(.titleAndIcon)
             .font(.system(size: 12))
             .foregroundStyle(Theme.secondary)
         }
@@ -228,7 +234,7 @@ struct MenuBarIcon: View {
             .font(.system(size: 18, weight: .medium))
             .imageScale(.large)
             .opacity(controller.isConnected ? 1 : 0.6)
-            .accessibilityLabel(controller.isConnected ? "Sound Connect, \(controller.state.noise?.mode.title ?? "connected")" : "Sound Connect, not connected")
+            .accessibilityLabel(controller.isConnected ? "Open Sound Connect, \(controller.state.noise?.mode.title ?? "connected")" : "Open Sound Connect, not connected")
     }
 }
 
