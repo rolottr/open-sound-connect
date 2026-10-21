@@ -177,7 +177,7 @@ The [GitHub Actions workflow](.github/workflows/build.yml) builds, tests and upl
 
 | Shortcut | Action |
 | --- | --- |
-| `⌘1` – `⌘5` | Open My Device, Sound, Scenes, Settings or Activity. |
+| `⌘1` – `⌘6` | Open My Device, Sound, Scenes, Settings, Activity or About. |
 | `⌘R` | Refresh headphone status. |
 | `⌘K` | Connect when disconnected. |
 | `⇧⌘K` | Disconnect the control connection. |
