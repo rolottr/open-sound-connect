@@ -148,11 +148,7 @@ struct MenuBarView: View {
             }
             HStack {
                 Button {
-                    // The app drops its Dock icon while only the menu bar item is open; bring it back with the window.
-                    navigation.page = .settings
-                    NSApp.setActivationPolicy(.regular)
-                    openWindow(id: "main")
-                    NSApp.activate(ignoringOtherApps: true)
+                    navigation.show(.settings, using: openWindow)
                 } label: {
                     Label(AppPage.settings.title, systemImage: AppPage.settings.symbol)
                 }

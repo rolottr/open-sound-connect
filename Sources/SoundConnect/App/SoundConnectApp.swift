@@ -172,9 +172,15 @@ struct SoundConnectCommands: Commands {
     let scenes: SceneStore
     let navigation: Navigation
     let updates: UpdateChecker
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {}
+
+        // The app's own About page instead of the standard About panel.
+        CommandGroup(replacing: .appInfo) {
+            Button("About Open Sound Connect") { navigation.show(.about, using: openWindow) }
+        }
 
         CommandGroup(after: .appInfo) {
             Button("Check for Updates…") { Task { await updates.checkAndReport() } }

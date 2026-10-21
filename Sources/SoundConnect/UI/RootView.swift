@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum AppPage: String, CaseIterable, Identifiable {
-    case myDevice, sound, scenes, settings, activity
+    case myDevice, sound, scenes, settings, activity, about
     var id: String { rawValue }
 
     var title: String {
@@ -11,6 +11,7 @@ enum AppPage: String, CaseIterable, Identifiable {
         case .scenes: "Scenes"
         case .settings: "Settings"
         case .activity: "Activity"
+        case .about: "About"
         }
     }
 
@@ -21,6 +22,7 @@ enum AppPage: String, CaseIterable, Identifiable {
         case .scenes: "figure.walk"
         case .settings: "gearshape"
         case .activity: "waveform.path.ecg.rectangle"
+        case .about: "info.circle"
         }
     }
 
@@ -31,6 +33,7 @@ enum AppPage: String, CaseIterable, Identifiable {
         case .scenes: "3"
         case .settings: "4"
         case .activity: "5"
+        case .about: "6"
         }
     }
 
@@ -42,6 +45,15 @@ enum AppPage: String, CaseIterable, Identifiable {
 @Observable
 final class Navigation {
     var page: AppPage = .myDevice
+
+    /// Brings the main window forward on a page. The app drops its Dock icon while only the menu bar item is open,
+    /// so bring it back with the window.
+    func show(_ page: AppPage, using openWindow: OpenWindowAction) {
+        self.page = page
+        NSApp.setActivationPolicy(.regular)
+        openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
+    }
 }
 
 struct RootView: View {
@@ -97,6 +109,7 @@ struct RootView: View {
             case .scenes: ScenesView()
             case .settings: DeviceSettingsView()
             case .activity: ActivityView()
+            case .about: AboutView()
             }
         }
     }
