@@ -252,7 +252,7 @@ struct ModeButton: View {
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
-        .onHover { hovering = $0 }
+        .onHoverChange { hovering = $0 }
         .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.8), value: selected)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: hovering)
         .accessibilityLabel(title)

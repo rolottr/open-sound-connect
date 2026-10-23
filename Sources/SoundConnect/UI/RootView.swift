@@ -211,7 +211,7 @@ struct SidebarItem: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { hovering = $0 }
+        .onHoverChange { hovering = $0 }
         .accessibilityLabel(page.title)
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
