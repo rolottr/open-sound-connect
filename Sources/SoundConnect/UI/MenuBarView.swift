@@ -1,130 +1,25 @@
 import SwiftUI
 
 /// Menu bar quick controls. Everything here goes through the same verified write path as the main window.
+///
+/// Each section is its own view and reads only the state it shows, so a battery or codec report redraws the
+/// header alone instead of the whole panel.
 struct MenuBarView: View {
     @Environment(HeadphoneController.self) private var controller
-    @Environment(SceneStore.self) private var scenes
-    @Environment(Navigation.self) private var navigation
-    @Environment(UpdateChecker.self) private var updates
-    @Environment(\.openWindow) private var openWindow
-    @AppStorage("lastAmbientLevel") private var rememberedLevel = 12
 
     var body: some View {
-        let state = controller.state
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                ProductImage(modelName: state.modelName ?? controller.selectedName, colorCode: state.colorCode, glow: false)
-                    .frame(width: 52, height: 52)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(state.modelName ?? controller.selectedName)
-                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.text)
-                    if controller.isConnected {
-                        HStack(spacing: 8) {
-                            BatteryLabel(battery: state.battery)
-                            if let codec = state.codec, codec != .unsettled { Badge(text: codec.title, tint: Theme.secondary) }
-                        }
-                    } else {
-                        Text(statusText).font(.caption11).foregroundStyle(Theme.secondary)
-                    }
-                }
-                Spacer()
-            }
+            MenuHeader()
 
             if controller.isReplay {
                 ReplayNotice(compact: true)
             }
 
             if controller.isConnected {
-                if let cap = state.capabilities.noise, let noise = state.noise {
-                    HStack(spacing: 0) {
-                        ForEach(cap.modes) { mode in
-                            CompactModeButton(mode: mode, selected: noise.mode == mode,
-                                              pending: controller.noiseIntent?.mode == mode && noise.mode != mode) {
-                                let level = rememberedLevel
-                                let entering = mode == .ambient && noise.mode != .ambient
-                                controller.requestNoise { value in
-                                    value.mode = mode
-                                    if entering { value.ambientLevel = level }
-                                }
-                            }
-                            .disabled(!controller.canWrite)
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-                    if noise.mode == .ambient, cap.ambientRange.count > 1 {
-                        HStack(spacing: 10) {
-                            Image(systemName: "ear").font(.system(size: 11)).foregroundStyle(Theme.secondary)
-                            LevelSlider(value: noise.ambientLevel, range: cap.ambientRange, enabled: controller.canWrite,
-                                        accessibilityName: "Ambient sound level",
-                                        onDrag: { controller.dragAmbientLevel($0) },
-                                        onCommit: { level in controller.requestNoise { $0.ambientLevel = level } })
-                            Text("\(noise.ambientLevel)").font(.system(size: 11, weight: .semibold).monospacedDigit())
-                                .foregroundStyle(Theme.secondary).frame(width: 18)
-                        }
-                        if cap.supportsVoiceFocus {
-                            MenuToggleRow(title: "Focus on Voice", symbol: "person.wave.2",
-                                          isOn: Binding(get: { noise.focusOnVoice }, set: { on in
-                                              controller.requestNoise { $0.focusOnVoice = on }
-                                          }))
-                                .disabled(!controller.canWrite)
-                        }
-                    }
-                }
-
+                MenuNoiseControls()
                 Divider().overlay(Theme.hairline)
-
-                VStack(spacing: 10) {
-                    if let cap = state.capabilities.equalizer, let eq = state.equalizer {
-                        HStack {
-                            Image(systemName: "slider.vertical.3").font(.system(size: 12)).foregroundStyle(Theme.secondary).frame(width: 18)
-                            Text("Equalizer").font(.system(size: 12.5)).foregroundStyle(Theme.text)
-                            Spacer()
-                            Picker("Equalizer", selection: Binding(get: { eq.presetID }, set: { controller.apply(.equalizerPreset($0)) })) {
-                                ForEach(cap.presets) { Text($0.name).tag($0.id) }
-                            }
-                            .labelsHidden()
-                            .fixedSize()
-                            .disabled(!controller.canWrite)
-                        }
-                    }
-                    if let name = state.capabilities.upscalingName {
-                        MenuToggleRow(title: name, symbol: "sparkles",
-                                      isOn: Binding(get: { state.upscaling?.enabled ?? false }, set: { controller.apply(.upscaling($0)) }))
-                            .disabled(!controller.canWrite)
-                    }
-                    if state.capabilities.speakToChat {
-                        MenuToggleRow(title: "Speak-to-Chat", symbol: "bubble.left.and.text.bubble.right",
-                                      isOn: Binding(get: { state.speakToChat?.enabled ?? false }, set: { controller.apply(.speakToChat($0)) }))
-                            .disabled(!controller.canWrite)
-                    }
-                }
-                .foregroundStyle(Theme.text)
-
-                if !scenes.scenes.isEmpty {
-                    Divider().overlay(Theme.hairline)
-                    Text("SCENES").font(.system(size: 9.5, weight: .semibold)).tracking(0.8).foregroundStyle(Theme.tertiary)
-                    FlowLayout(spacing: 6) {
-                        ForEach(scenes.scenes) { scene in
-                            let applied = scenes.isApplied(scene)
-                            Button {
-                                Task { await scenes.apply(scene.id) }
-                            } label: {
-                                HStack(spacing: 5) {
-                                    if scenes.runningSceneID == scene.id { ProgressView().controlSize(.mini) }
-                                    else if applied { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.secondary) }
-                                    else { Image(systemName: scene.symbol).font(.system(size: 10, weight: .semibold)).foregroundStyle(scene.tint.color) }
-                                    Text(scene.name).font(.system(size: 11.5, weight: .medium))
-                                        .foregroundStyle(applied ? Theme.secondary : Theme.text)
-                                }
-                                .padding(.horizontal, 10).frame(height: 26)
-                                .background(Capsule().fill(Theme.control))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!scenes.canApply(scene))
-                            .accessibilityLabel(applied ? "Scene \(scene.name), applied" : "Apply scene \(scene.name)")
-                        }
-                    }
-                }
+                MenuSoundToggles()
+                MenuScenes()
             } else if let address = controller.selectedAddress, !controller.phase.isBusy,
                       controller.bluetooth.status == .ready {
                 Button {
@@ -136,31 +31,7 @@ struct MenuBarView: View {
             }
 
             Divider().overlay(Theme.hairline)
-            if let release = updates.available {
-                Button {
-                    updates.download(release)
-                } label: {
-                    Label("Download Open Sound Connect \(release.version)", systemImage: "arrow.down.circle.fill")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(Theme.accent)
-            }
-            HStack {
-                Button {
-                    navigation.show(.settings, using: openWindow)
-                } label: {
-                    Label(AppPage.settings.title, systemImage: AppPage.settings.symbol)
-                }
-                Spacer()
-                Button { NSApp.terminate(nil) } label: {
-                    Label("Quit", systemImage: "power")
-                }
-            }
-            .buttonStyle(.borderless)
-            .labelStyle(.titleAndIcon)
-            .font(.system(size: 12))
-            .foregroundStyle(Theme.secondary)
+            MenuFooter()
         }
         .padding(16)
         .frame(width: 320)
@@ -172,6 +43,31 @@ struct MenuBarView: View {
         .containerBackground(Theme.canvasTop, for: .window)
         .preferredColorScheme(.dark)
         .tint(Theme.accent)
+    }
+}
+
+private struct MenuHeader: View {
+    @Environment(HeadphoneController.self) private var controller
+
+    var body: some View {
+        let state = controller.state
+        HStack(spacing: 12) {
+            ProductImage(modelName: state.modelName ?? controller.selectedName, colorCode: state.colorCode, glow: false)
+                .frame(width: 52, height: 52)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(state.modelName ?? controller.selectedName)
+                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.text)
+                if controller.isConnected {
+                    HStack(spacing: 8) {
+                        BatteryLabel(battery: state.battery)
+                        if let codec = state.codec, codec != .unsettled { Badge(text: codec.title, tint: Theme.secondary) }
+                    }
+                } else {
+                    Text(statusText).font(.caption11).foregroundStyle(Theme.secondary)
+                }
+            }
+            Spacer()
+        }
     }
 
     private var statusText: String {
@@ -185,6 +81,150 @@ struct MenuBarView: View {
         case .noHeadphones: "No Sony headphones paired"
         default: ""
         }
+    }
+}
+
+private struct MenuNoiseControls: View {
+    @Environment(HeadphoneController.self) private var controller
+    @AppStorage("lastAmbientLevel") private var rememberedLevel = 12
+
+    var body: some View {
+        let state = controller.state
+        if let cap = state.capabilities.noise, let noise = state.noise {
+            HStack(spacing: 0) {
+                ForEach(cap.modes) { mode in
+                    CompactModeButton(mode: mode, selected: noise.mode == mode,
+                                      pending: controller.noiseIntent?.mode == mode && noise.mode != mode) {
+                        let level = rememberedLevel
+                        let entering = mode == .ambient && noise.mode != .ambient
+                        controller.requestNoise { value in
+                            value.mode = mode
+                            if entering { value.ambientLevel = level }
+                        }
+                    }
+                    .disabled(!controller.canWrite)
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            if noise.mode == .ambient, cap.ambientRange.count > 1 {
+                HStack(spacing: 10) {
+                    Image(systemName: "ear").font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                    LevelSlider(value: noise.ambientLevel, range: cap.ambientRange, enabled: controller.canWrite,
+                                accessibilityName: "Ambient sound level",
+                                onDrag: { controller.dragAmbientLevel($0) },
+                                onCommit: { level in controller.requestNoise { $0.ambientLevel = level } })
+                    Text("\(noise.ambientLevel)").font(.system(size: 11, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(Theme.secondary).frame(width: 18)
+                }
+                if cap.supportsVoiceFocus {
+                    MenuToggleRow(title: "Focus on Voice", symbol: "person.wave.2",
+                                  isOn: Binding(get: { noise.focusOnVoice }, set: { on in
+                                      controller.requestNoise { $0.focusOnVoice = on }
+                                  }))
+                        .disabled(!controller.canWrite)
+                }
+            }
+        }
+    }
+}
+
+private struct MenuSoundToggles: View {
+    @Environment(HeadphoneController.self) private var controller
+
+    var body: some View {
+        let state = controller.state
+        VStack(spacing: 10) {
+            if let cap = state.capabilities.equalizer, let eq = state.equalizer {
+                HStack {
+                    Image(systemName: "slider.vertical.3").font(.system(size: 12)).foregroundStyle(Theme.secondary).frame(width: 18)
+                    Text("Equalizer").font(.system(size: 12.5)).foregroundStyle(Theme.text)
+                    Spacer()
+                    Picker("Equalizer", selection: Binding(get: { eq.presetID }, set: { controller.apply(.equalizerPreset($0)) })) {
+                        ForEach(cap.presets) { Text($0.name).tag($0.id) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    .disabled(!controller.canWrite)
+                }
+            }
+            if let name = state.capabilities.upscalingName {
+                MenuToggleRow(title: name, symbol: "sparkles",
+                              isOn: Binding(get: { state.upscaling?.enabled ?? false }, set: { controller.apply(.upscaling($0)) }))
+                    .disabled(!controller.canWrite)
+            }
+            if state.capabilities.speakToChat {
+                MenuToggleRow(title: "Speak-to-Chat", symbol: "bubble.left.and.text.bubble.right",
+                              isOn: Binding(get: { state.speakToChat?.enabled ?? false }, set: { controller.apply(.speakToChat($0)) }))
+                    .disabled(!controller.canWrite)
+            }
+        }
+        .foregroundStyle(Theme.text)
+    }
+}
+
+private struct MenuScenes: View {
+    @Environment(SceneStore.self) private var scenes
+
+    var body: some View {
+        if !scenes.scenes.isEmpty {
+            Divider().overlay(Theme.hairline)
+            Text("SCENES").font(.system(size: 9.5, weight: .semibold)).tracking(0.8).foregroundStyle(Theme.tertiary)
+            FlowLayout(spacing: 6) {
+                ForEach(scenes.scenes) { scene in
+                    let applied = scenes.isApplied(scene)
+                    Button {
+                        Task { await scenes.apply(scene.id) }
+                    } label: {
+                        HStack(spacing: 5) {
+                            if scenes.runningSceneID == scene.id { ProgressView().controlSize(.mini) }
+                            else if applied { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.secondary) }
+                            else { Image(systemName: scene.symbol).font(.system(size: 10, weight: .semibold)).foregroundStyle(scene.tint.color) }
+                            Text(scene.name).font(.system(size: 11.5, weight: .medium))
+                                .foregroundStyle(applied ? Theme.secondary : Theme.text)
+                        }
+                        .padding(.horizontal, 10).frame(height: 26)
+                        .background(Capsule().fill(Theme.control))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!scenes.canApply(scene))
+                    .accessibilityLabel(applied ? "Scene \(scene.name), applied" : "Apply scene \(scene.name)")
+                }
+            }
+        }
+    }
+}
+
+private struct MenuFooter: View {
+    @Environment(Navigation.self) private var navigation
+    @Environment(UpdateChecker.self) private var updates
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        if let release = updates.available {
+            Button {
+                updates.download(release)
+            } label: {
+                Label("Download Open Sound Connect \(release.version)", systemImage: "arrow.down.circle.fill")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(Theme.accent)
+        }
+        HStack {
+            Button {
+                navigation.show(.settings, using: openWindow)
+            } label: {
+                Label(AppPage.settings.title, systemImage: AppPage.settings.symbol)
+            }
+            Spacer()
+            Button { NSApp.terminate(nil) } label: {
+                Label("Quit", systemImage: "power")
+            }
+        }
+        .buttonStyle(.borderless)
+        .labelStyle(.titleAndIcon)
+        .font(.system(size: 12))
+        .foregroundStyle(Theme.secondary)
     }
 }
 

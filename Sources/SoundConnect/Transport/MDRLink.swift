@@ -104,7 +104,6 @@ final class MDRLink: RFCOMMTransportDelegate {
     var onClose: ((Error) -> Void)?
     var describe: ((MDRFrame) -> String)?
     var onTraffic: ((TrafficEntry) -> Void)?
-    private(set) var traffic: [TrafficEntry] = []
 
     var ackTimeout: TimeInterval = 1.0
     var maxAttempts = 4
@@ -344,8 +343,6 @@ final class MDRLink: RFCOMMTransportDelegate {
     private func log(_ direction: TrafficEntry.Direction, type: String, sequence: UInt8?, payload: [UInt8], summary: String) {
         let entry = TrafficEntry(id: makeID(), date: Date(), direction: direction, frameType: type,
                                  sequence: sequence, payload: payload, summary: summary)
-        traffic.append(entry)
-        if traffic.count > 800 { traffic.removeFirst(traffic.count - 800) }
         onTraffic?(entry)
     }
 }

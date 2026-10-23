@@ -436,6 +436,8 @@ final class HeadphoneController {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshStatus() }
         }
+        // Exact timing doesn't matter; tolerance lets macOS wake the app together with other work.
+        refreshTimer?.tolerance = 10
     }
 
     func refreshStatus() {

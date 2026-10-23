@@ -7,7 +7,7 @@ struct SoundConnectApp: App {
 
     var body: some Scene {
         Window("Open Sound Connect", id: "main") {
-            RootView()
+            ReleasedWhenClosed { RootView() }
                 .environment(appDelegate.controller)
                 .environment(appDelegate.scenes)
                 .environment(appDelegate.curves)
@@ -24,7 +24,7 @@ struct SoundConnectApp: App {
         }
 
         MenuBarExtra(isInserted: $showMenuBar) {
-            MenuBarView()
+            ReleasedWhenClosed { MenuBarView() }
                 .background(MenuBarWindowSizing())
                 .environment(appDelegate.controller)
                 .environment(appDelegate.scenes)
