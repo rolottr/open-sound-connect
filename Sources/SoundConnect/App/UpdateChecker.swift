@@ -18,6 +18,12 @@ final class UpdateChecker {
     }
 
     static let repository = "rolottr/open-sound-connect"
+    /// App Store builds are updated by the App Store, so they never contact GitHub and show no update UI.
+    #if APP_STORE
+    static let isEnabled = false
+    #else
+    static let isEnabled = true
+    #endif
     private static let interval: TimeInterval = 24 * 60 * 60
 
     private enum Key {
@@ -53,7 +59,7 @@ final class UpdateChecker {
     /// Checks shortly after launch, then hourly whether a day has passed, since the app can run for weeks in the
     /// menu bar.
     func startAutomaticChecks() {
-        guard schedule == nil, !LaunchContext.isDeveloperRun else { return }
+        guard Self.isEnabled, schedule == nil, !LaunchContext.isDeveloperRun else { return }
         schedule = Task { [weak self] in
             try? await Task.sleep(for: .seconds(10))
             while !Task.isCancelled {
@@ -70,7 +76,7 @@ final class UpdateChecker {
     }
 
     func check() async {
-        guard state != .checking else { return }
+        guard Self.isEnabled, state != .checking else { return }
         state = .checking
         do {
             var request = URLRequest(url: URL(string: "https://api.github.com/repos/\(Self.repository)/releases/latest")!)

@@ -7,7 +7,7 @@ struct SoundConnectApp: App {
 
     var body: some Scene {
         Window("Open Sound Connect", id: "main") {
-            RootView()
+            ReleasedWhenClosed { RootView() }
                 .environment(appDelegate.controller)
                 .environment(appDelegate.scenes)
                 .environment(appDelegate.curves)
@@ -24,7 +24,7 @@ struct SoundConnectApp: App {
         }
 
         MenuBarExtra(isInserted: $showMenuBar) {
-            MenuBarView()
+            ReleasedWhenClosed { MenuBarView() }
                 .background(MenuBarWindowSizing())
                 .environment(appDelegate.controller)
                 .environment(appDelegate.scenes)
@@ -76,7 +76,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Developer replay of a recorded `--probe` report: no Bluetooth, no automations, read-only.
             controller.startReplay(from: URL(fileURLWithPath: arguments[index + 1]))
         } else {
-            controller.systemNowPlaying.start()
             controller.start()
             scenes.startAutomation()
         }
@@ -162,7 +161,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        controller.systemNowPlaying.stop()
         controller.disconnect()
     }
 }
@@ -183,8 +181,10 @@ struct SoundConnectCommands: Commands {
         }
 
         CommandGroup(after: .appInfo) {
-            Button("Check for Updates…") { Task { await updates.checkAndReport() } }
-                .disabled(updates.state == .checking)
+            if UpdateChecker.isEnabled {
+                Button("Check for Updates…") { Task { await updates.checkAndReport() } }
+                    .disabled(updates.state == .checking)
+            }
         }
 
         CommandGroup(after: .sidebar) {

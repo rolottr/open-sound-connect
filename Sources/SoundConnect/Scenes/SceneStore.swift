@@ -198,6 +198,8 @@ final class SceneStore {
         scheduleTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkSchedules() }
         }
+        // Checked three times a minute, so a few seconds late still lands in the scheduled minute.
+        scheduleTimer?.tolerance = 5
     }
 
     private func handleConnected() {

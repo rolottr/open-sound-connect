@@ -32,9 +32,7 @@ private struct HeadphoneModelCanvas: NSViewRepresentable {
     let resetID: Int
 
     func makeNSView(context: Context) -> HeadphoneSceneView {
-        let view = HeadphoneSceneView(frame: .zero)
-        view.load(resourceName)
-        return view
+        HeadphoneSceneView.reused(resourceName)
     }
 
     func updateNSView(_ view: HeadphoneSceneView, context: Context) {
@@ -45,6 +43,10 @@ private struct HeadphoneModelCanvas: NSViewRepresentable {
             view.resetID = resetID
             view.resetOrientation()
         }
+    }
+
+    static func dismantleNSView(_ view: HeadphoneSceneView, coordinator: ()) {
+        HeadphoneSceneView.keep(view)
     }
 }
 
@@ -76,6 +78,24 @@ final class HeadphoneSceneView: SCNView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// Building the view and loading its model takes a moment, and My Device drops its views whenever another page
+    /// shows or the window closes, so views leaving the screen wait here for the next one.
+    private static var spares: [String: HeadphoneSceneView] = [:]
+
+    static func reused(_ name: String) -> HeadphoneSceneView {
+        if let view = spares.removeValue(forKey: name) { return view }
+        let view = HeadphoneSceneView(frame: .zero)
+        view.load(name)
+        return view
+    }
+
+    static func keep(_ view: HeadphoneSceneView) {
+        guard let name = view.resourceName else { return }
+        view.resetID = 0
+        view.resetOrientation()
+        spares[name] = view
+    }
 
     private func setupScene() {
         let scene = SCNScene()

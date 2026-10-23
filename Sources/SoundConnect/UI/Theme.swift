@@ -294,21 +294,30 @@ struct StatusDot: View {
     let color: Color
     var pulsing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase = false
 
     var body: some View {
         Circle()
             .fill(color)
             .frame(width: 7, height: 7)
-            .overlay(
-                Circle().stroke(color.opacity(0.5), lineWidth: 2)
-                    .scaleEffect(pulsing && phase && !reduceMotion ? 2.2 : 1)
-                    .opacity(pulsing && !reduceMotion ? (phase ? 0 : 0.8) : 0)
-            )
-            .onAppear {
-                guard pulsing, !reduceMotion else { return }
-                withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) { phase = true }
+            .overlay {
+                if pulsing && !reduceMotion { PulseRing(color: color) }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// Its own view so the pulse ends with it: a repeating animation redraws the window every frame for as long as
+/// its view exists, even once what it animates is hidden (the dot used to pulse invisibly after connecting).
+private struct PulseRing: View {
+    let color: Color
+    @State private var expanded = false
+
+    var body: some View {
+        Circle().stroke(color.opacity(0.5), lineWidth: 2)
+            .scaleEffect(expanded ? 2.2 : 1)
+            .opacity(expanded ? 0 : 0.8)
+            .onAppear {
+                withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) { expanded = true }
+            }
     }
 }

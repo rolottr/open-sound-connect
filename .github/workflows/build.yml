@@ -29,6 +29,8 @@ jobs:
         run: ./scripts/package.sh
       - name: Test playback and volume verification
         run: ./scripts/test.sh
+      - name: Build the Mac App Store variant
+        run: CHANNEL=appstore ./scripts/build.sh
       - name: Verify checksum
         working-directory: build
         run: shasum -a 256 -c Sound-Connect-macos-${{ matrix.arch }}.zip.sha256
