@@ -1,5 +1,7 @@
 # Open Sound Connect
 
+Support the app at [opensoundconnect.app](https://opensoundconnect.app).
+
 ![Sound Connect walkthrough showing the interactive headphone model, sound controls, scenes, settings and activity](.github/assets/showcase.webp)
 
 <p align="center">
