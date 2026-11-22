@@ -14,9 +14,9 @@ Open Sound Connect is a native macOS app for controlling Sony headphones over Bl
 
 Built with Swift and SwiftUI. No account, no cloud service, no analytics.
 
-[Getting started](#getting-started) · [Features](#features) · [Compatibility](#compatibility) · [Building](#building-from-source)
+[Getting started](#getting-started) Â· [Features](#features) Â· [Compatibility](#compatibility) Â· [Building](#building-from-source)
 
-> Independent, community-developed software. Not affiliated with or endorsed by Sony. WH-1000XM4 is the primary development device; WH-1000XM5/XM6 support is experimental.
+> Independent, community-developed software. Not affiliated with or endorsed by Sony. Supports the MDR-1000X, WH-1000XM2–XM6 and WH-1000XX; the controls shown depend on what each model reports.
 
 ## Why this app?
 
@@ -55,15 +55,15 @@ Feature availability depends on the headphone model and firmware. Implemented co
 
 1. Build the app using the instructions below, or obtain a matching architecture build from this repository's [Releases](https://github.com/rolottr/open-sound-connect/releases) or [Actions](https://github.com/rolottr/open-sound-connect/actions/workflows/build.yml).
 2. Place **Sound Connect.app** in your Applications folder and open it.
-3. Pair and connect your headphones in **System Settings → Bluetooth**.
+3. Pair and connect your headphones in **System Settings â Bluetooth**.
 4. Allow Sound Connect to access Bluetooth when macOS asks.
 5. Open **My Device** to see the connected headset and its available controls.
 
-The app bundle is named **Sound Connect.app**. Closing the main window keeps the app running in the menu bar, without a Dock icon, when its menu bar item is enabled; choose **Open Sound Connect** there to bring the window back, or **Quit** (⌘Q) to stop it and its automations.
+The app bundle is named **Sound Connect.app**. Closing the main window keeps the app running in the menu bar, without a Dock icon, when its menu bar item is enabled; choose **Open Sound Connect** there to bring the window back, or **Quit** (âQ) to stop it and its automations.
 
-After your headphones first connect, Sound Connect offers once to open at login; the same switch is under **Settings → Sound Connect**. When opened at login it starts quietly in the menu bar. Launching with `--background` does the same for testing.
+After your headphones first connect, Sound Connect offers once to open at login; the same switch is under **Settings â Sound Connect**. When opened at login it starts quietly in the menu bar. Launching with `--background` does the same for testing.
 
-Sound Connect checks this repository's GitHub Releases once a day. When a newer version is out, **Download** opens that release's page on GitHub; pick the archive for your Mac (`arm64` for Apple Silicon, `x86_64` for Intel) and replace the app in your Applications folder with the new one. You can also choose **Sound Connect → Check for Updates…**.
+Sound Connect checks this repository's GitHub Releases once a day. When a newer version is out, **Download** opens that release's page on GitHub; pick the archive for your Mac (`arm64` for Apple Silicon, `x86_64` for Intel) and replace the app in your Applications folder with the new one. You can also choose **Sound Connect â Check for Updatesâ¦**.
 
 ### About downloaded builds
 
@@ -75,9 +75,12 @@ Use `arm64` builds on Apple Silicon and `x86_64` builds on Intel Macs. These are
 
 | Headphones | Status |
 | --- | --- |
-| **WH-1000XM4** | Primary development device; hardware checks performed with firmware **2.6.0**. |
-| **WH-1000XM5 / WH-1000XM6** | Experimental protocol V2 implementation; **not verified on hardware**. |
-| **Other Sony models** | May expose compatible features, but are not verified. |
+| **WH-1000XM4** | Supported and tested (protocol V1). Primary development device; hardware checks performed with firmware **2.6.0**. |
+| **WH-1000XM5 / WH-1000XM6** | Supported and tested (protocol V2). |
+| **MDR-1000X / WH-1000XM2 / WH-1000XM3 / WH-1000XX** | Supported and tested. |
+| **Other Sony models** | May expose compatible features, but are not supported. |
+
+The maintainer confirmed support and testing for all seven models in November 2026. Controls still differ by model: the app shows only what the connected headphones report, so, for example, the MDR-1000X has no equalizer and Speak-to-Chat starts with the WH-1000XM4.
 
 Prior WH-1000XM4 hardware checks covered noise control, EQ, DSEE, Speak-to-Chat, wearing/power preferences, touch controls and voice guidance. A basic noise-control scene was also checked through the main window.
 
@@ -152,9 +155,9 @@ This makes a release build and creates an architecture-specific ZIP and SHA-256 
 
 ```text
 build/
-├── Sound Connect.app
-├── Sound-Connect-macos-arm64.zip
-└── Sound-Connect-macos-arm64.zip.sha256
+âââ Sound Connect.app
+âââ Sound-Connect-macos-arm64.zip
+âââ Sound-Connect-macos-arm64.zip.sha256
 ```
 
 On an Intel Mac the suffix is `x86_64`. To verify an Apple Silicon archive, run this from the directory containing both downloaded files:
@@ -169,18 +172,18 @@ The [GitHub Actions workflow](.github/workflows/build.yml) builds and uploads ZI
 
 | Shortcut | Action |
 | --- | --- |
-| `⌘1` – `⌘5` | Open My Device, Sound, Scenes, Settings or Activity. |
-| `⌘R` | Refresh headphone status. |
-| `⌘K` | Connect when disconnected. |
-| `⇧⌘K` | Disconnect the control connection. |
-| `⌃⌘1`, `⌃⌘2`, … | Apply a scene, following its order in the Scenes menu. |
-| `⌘,` | Open app preferences. |
+| `â1` â `â5` | Open My Device, Sound, Scenes, Settings or Activity. |
+| `âR` | Refresh headphone status. |
+| `âK` | Connect when disconnected. |
+| `â§âK` | Disconnect the control connection. |
+| `ââ1`, `ââ2`, â¦ | Apply a scene, following its order in the Scenes menu. |
+| `â,` | Open app preferences. |
 
 The **Headphones** and **Scenes** menus expose additional actions and their shortcuts.
 
 ## Privacy and local storage
 
-The app communicates directly with the headset over local Bluetooth. It has no account system, analytics or cloud backend. Its only network request is the update check: once a day it reads this repository's latest public release from the GitHub API, sending nothing about you or your headphones. Turn it off under **Settings → Updates → Check Automatically**.
+The app communicates directly with the headset over local Bluetooth. It has no account system, analytics or cloud backend. Its only network request is the update check: once a day it reads this repository's latest public release from the GitHub API, sending nothing about you or your headphones. Turn it off under **Settings â Updates â Check Automatically**.
 
 Now Playing reads media metadata and artwork locally from macOS using the bundled [MediaRemote Adapter](Vendor/MediaRemoteAdapter/UPSTREAM.md). It does not fetch cover images from the internet or store listening history. This integration uses a private macOS interface; if unavailable, the app falls back to the metadata supplied by the headphones. Replay mode never starts the macOS media helper.
 
@@ -198,7 +201,7 @@ Make sure they are paired and connected in macOS Bluetooth settings, then use **
 
 ### Bluetooth access was denied
 
-Enable Sound Connect under **System Settings → Privacy & Security → Bluetooth**, then reopen the app. Launch the `.app` bundle through Finder or `open`, not its internal executable from a terminal.
+Enable Sound Connect under **System Settings â Privacy & Security â Bluetooth**, then reopen the app. Launch the `.app` bundle through Finder or `open`, not its internal executable from a terminal.
 
 ### A control is missing or a change fails
 
@@ -222,7 +225,7 @@ open -n "build/Sound Connect.app" --args \
   --replay "$HOME/Desktop/sound-connect-probe.txt"
 ```
 
-Replay runs the recorded frames through the app's parser and displays a persistent **READ-ONLY REPLAY — NOT LIVE** banner. Headphone writes and scene automation are disabled. Local scenes and preferences remain editable and are saved normally.
+Replay runs the recorded frames through the app's parser and displays a persistent **READ-ONLY REPLAY â NOT LIVE** banner. Headphone writes and scene automation are disabled. Local scenes and preferences remain editable and are saved normally.
 
 ## Credits and license
 
@@ -230,6 +233,6 @@ Created by [rolottr](https://github.com/rolottr). Released under the [MIT Licens
 
 The bundled [MediaRemote Adapter](https://github.com/ungive/mediaremote-adapter) is by Jonas van den Berg and contributors, under its [BSD-3-Clause license](Vendor/MediaRemoteAdapter/LICENSE). Its pinned source is in `Vendor/MediaRemoteAdapter`, and its license is included in the app bundle.
 
-Protocol research benefited from [SonyHeadphonesClient](https://github.com/mos9527/SonyHeadphonesClient), [Plutoberth’s SonyHeadphonesClient](https://github.com/Plutoberth/SonyHeadphonesClient) and [SonyBridge](https://github.com/AmitRajput-Dev/SonyBridge). See [artwork attribution](Resources/Artwork/ATTRIBUTION.md) for the bundled icon. The WH-1000XM4 model and thumbnail are original Blender artwork; other models use a generic SwiftUI illustration. The editable scene and generator are in [`artwork/`](artwork/). Sony product names and marks identify the depicted device and belong to their respective owners.
+Protocol research benefited from [SonyHeadphonesClient](https://github.com/mos9527/SonyHeadphonesClient), [Plutoberthâs SonyHeadphonesClient](https://github.com/Plutoberth/SonyHeadphonesClient) and [SonyBridge](https://github.com/AmitRajput-Dev/SonyBridge). See [artwork attribution](Resources/Artwork/ATTRIBUTION.md) for the bundled icon. The WH-1000XM4 model and thumbnail are original Blender artwork; other models use a generic SwiftUI illustration. The editable scene and generator are in [`artwork/`](artwork/). Sony product names and marks identify the depicted device and belong to their respective owners.
 
 Sony names and trademarks belong to their respective owners. This project is not affiliated with Sony Corporation.
